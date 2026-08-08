@@ -9,49 +9,61 @@
 <link rel="stylesheet" href="app.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
+  /* ---- Navegación por pestañas grandes ---- */
+  .tabs { display: flex; margin: 0 16px 14px; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .tab-btn {
+    flex: 1; padding: 14px 4px; border: none; background: none;
+    font-size: 12px; font-weight: 700; color: var(--ink-soft);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    border-bottom: 3px solid transparent;
+  }
+  .tab-btn .tab-icon { font-size: 20px; }
+  .tab-btn.active { color: var(--gold-dark); border-bottom-color: var(--gold); background: #FBF6EA; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .tab-hint { margin: 0 16px 14px; font-size: 14px; color: var(--ink-soft); }
+
+  /* ---- Ítems de compra (3 estados propios) ---- */
+  .item-card.compra.st-pendiente { background: #FFF8E6; border-color: #E8C868; }
+  .item-card.compra.st-completado { background: var(--completado); border-color: var(--completado-ink); }
+  .item-card.compra.st-falta_conseguir { background: var(--correccion); border-color: var(--correccion-ink); }
+  .status-btn.active.sb-falta_conseguir { background: var(--correccion-ink); color: #fff; border-color: var(--correccion-ink); }
+
+  /* ---- Checklist con número/✓/✕ ---- */
   .item-badge {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 28px; height: 28px; border-radius: 50%; font-size: 13px; font-weight: 700;
+    width: 30px; height: 30px; border-radius: 50%; font-size: 14px; font-weight: 700;
     background: var(--line); color: var(--ink-soft); flex-shrink: 0;
   }
   .item-badge.b-completado { background: var(--completado-ink); color: #fff; }
   .item-badge.b-requiere_correccion { background: var(--correccion-ink); color: #fff; }
   .item-badge.b-no_aplica { background: var(--no-aplica-ink); color: #fff; }
   .item-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .item-name-row .item-name { margin-bottom: 0; }
+  .item-name-row .item-name { margin-bottom: 0; font-size: 16px; }
 
-  .correction-box {
-    margin-top: 10px; padding: 12px; border-radius: var(--radius-sm);
-    background: #fff; border: 2px solid var(--correccion-ink);
-  }
-  .correction-box .confirm-btn {
-    width: 100%; min-height: 48px; margin-top: 8px;
-    background: var(--correccion-ink); color: #fff; border: none;
-    border-radius: var(--radius-sm); font-weight: 700; font-size: 15px;
-  }
+  .correction-box { margin-top: 10px; padding: 12px; border-radius: var(--radius-sm); background: #fff; border: 2px solid var(--correccion-ink); }
+  .correction-box strong { font-size: 15px; }
+  .correction-box .confirm-btn { width: 100%; min-height: 50px; margin-top: 8px; background: var(--correccion-ink); color: #fff; border: none; border-radius: var(--radius-sm); font-weight: 700; font-size: 15px; }
 
-  #corrections-panel {
-    margin: 0 16px 14px; background: #fff; border: 2px solid var(--correccion-ink);
-    border-radius: var(--radius); overflow: hidden;
-  }
-  #corrections-panel .cp-head {
-    padding: 12px 16px; background: var(--correccion); color: var(--correccion-ink);
-    font-weight: 700; font-size: 14px;
-  }
-  #corrections-panel .cp-item {
-    padding: 10px 16px; border-top: 1px solid var(--line);
-    display: flex; justify-content: space-between; align-items: center; font-size: 14px;
-  }
+  #corrections-panel { margin: 0 16px 14px; background: #fff; border: 2px solid var(--correccion-ink); border-radius: var(--radius); overflow: hidden; }
+  #corrections-panel .cp-head { padding: 12px 16px; background: var(--correccion); color: var(--correccion-ink); font-weight: 700; font-size: 15px; }
+  #corrections-panel .cp-item { padding: 10px 16px; border-top: 1px solid var(--line); font-size: 14px; }
 
   .stats-bar { display: flex; gap: 8px; margin: 0 16px 14px; flex-wrap: wrap; }
   .stats-pill { flex: 1 1 auto; background: #fff; border-radius: var(--radius-sm); padding: 10px 12px; text-align: center; box-shadow: var(--shadow); }
-  .stats-pill .num { font-size: 18px; font-weight: 700; display: block; }
-  .stats-pill .lbl { font-size: 11px; color: var(--ink-soft); }
+  .stats-pill .num { font-size: 20px; font-weight: 700; display: block; }
+  .stats-pill .lbl { font-size: 12px; color: var(--ink-soft); }
 
-  .history-toggle { font-size: 12px; color: var(--ink-soft); margin-top: 8px; text-decoration: underline; background: none; border: none; padding: 0; }
-  .history-list { margin-top: 8px; padding: 10px; background: var(--bg); border-radius: 8px; font-size: 12px; }
-  .history-list .h-entry { padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .history-toggle { font-size: 13px; color: var(--ink-soft); margin-top: 8px; text-decoration: underline; background: none; border: none; padding: 0; }
+  .history-list { margin-top: 8px; padding: 10px; background: var(--bg); border-radius: 8px; font-size: 13px; }
+  .history-list .h-entry { padding: 5px 0; border-bottom: 1px solid var(--line); }
   .history-list .h-entry:last-child { border-bottom: none; }
+
+  /* ---- Fotos y observaciones (feed general) ---- */
+  .obs-form { margin: 0 16px 14px; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+  .obs-form textarea { width: 100%; min-height: 70px; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px; font-size: 15px; margin-bottom: 10px; }
+  .feed-entry { margin: 0 16px 10px; background: #fff; border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 14px; font-size: 14px; }
+  .feed-entry .who { color: var(--ink-soft); font-size: 12px; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -63,39 +75,95 @@
   </div>
 
   <div id="summary-card"></div>
-  <div id="stats-bar"></div>
-  <div id="corrections-panel" style="display:none"></div>
-  <div id="sections-container"><div class="loading-state">Cargando…</div></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="compras"><span class="tab-icon">🛒</span>Compras</button>
+    <button class="tab-btn" data-tab="instalacion"><span class="tab-icon">🔧</span>Instalación</button>
+    <button class="tab-btn" data-tab="fotos"><span class="tab-icon">📷</span>Fotos y notas</button>
+    <button class="tab-btn" data-tab="historial"><span class="tab-icon">🕘</span>Historial</button>
+  </div>
+
+  <div id="tab-compras" class="tab-panel active">
+    <p class="tab-hint">Revise qué hace falta comprar para esta obra.</p>
+    <div id="compras-container"><div class="loading-state">Cargando…</div></div>
+  </div>
+
+  <div id="tab-instalacion" class="tab-panel">
+    <p class="tab-hint">Marque cada punto cuando esté bien terminado.</p>
+    <div id="stats-bar"></div>
+    <div id="corrections-panel" style="display:none"></div>
+    <div id="instalacion-container"></div>
+  </div>
+
+  <div id="tab-fotos" class="tab-panel">
+    <p class="tab-hint">Agregue una nota o foto general de la obra.</p>
+    <div class="obs-form">
+      <textarea id="general-note-input" placeholder="Escriba una observación…"></textarea>
+      <button id="add-general-note" class="btn btn-primary">Guardar nota</button>
+      <button id="add-general-photo" class="btn btn-secondary" style="margin-top:8px">📷 Agregar foto</button>
+      <input type="file" accept="image/*" capture="environment" id="general-photo-input" style="display:none">
+    </div>
+    <div id="fotos-container"></div>
+  </div>
+
+  <div id="tab-historial" class="tab-panel">
+    <p class="tab-hint">Todo lo que ha pasado en esta obra, en orden.</p>
+    <div id="historial-container"><div class="loading-state">Cargando…</div></div>
+  </div>
 </div>
 
 <script type="module">
   import { supabase, requireSession, getCurrentProfile } from "./supabase.js";
   import { statusLabel, escapeHtml } from "./format.js";
 
+  const COMPRAS_KEYS = ["compras_dia1", "tomas", "compras_dia2", "kit_carro", "kit_instalacion"];
+  const INSTALACION_KEYS = ["instalacion_meson", "instalacion_salpicadero", "instalacion_lavaplatos", "instalacion_horno_estufa", "control_calidad"];
+
   const params = new URLSearchParams(window.location.search);
   const projectId = params.get("id");
   const summaryEl = document.getElementById("summary-card");
   const statsEl = document.getElementById("stats-bar");
   const correctionsEl = document.getElementById("corrections-panel");
-  const sectionsEl = document.getElementById("sections-container");
+  const comprasEl = document.getElementById("compras-container");
+  const instalacionEl = document.getElementById("instalacion-container");
+  const fotosEl = document.getElementById("fotos-container");
+  const historialEl = document.getElementById("historial-container");
   const titleEl = document.getElementById("project-title");
 
   let currentProfile = null;
   let allSections = [];
 
   async function init() {
-    if (!projectId) { sectionsEl.innerHTML = '<div class="empty-state">Falta el id de la obra.</div>'; return; }
+    if (!projectId) { instalacionEl.innerHTML = '<div class="empty-state">Falta el id de la obra.</div>'; return; }
     const session = await requireSession();
     if (!session) return;
 
     currentProfile = await getCurrentProfile();
+    attachTabHandlers();
     await loadProject();
+  }
+
+  function attachTabHandlers() {
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+        if (btn.dataset.tab === "historial") loadHistorialFeed();
+        if (btn.dataset.tab === "fotos") loadFotosFeed();
+      });
+    });
+
+    document.getElementById("add-general-note").addEventListener("click", addGeneralNote);
+    document.getElementById("add-general-photo").addEventListener("click", () => document.getElementById("general-photo-input").click());
+    document.getElementById("general-photo-input").addEventListener("change", (e) => uploadPhoto(null, e.target.files[0]));
   }
 
   async function loadProject() {
     const { data: project, error } = await supabase.from("projects").select("*").eq("id", projectId).single();
     if (error || !project) {
-      sectionsEl.innerHTML = `<div class="empty-state">No se pudo abrir esta obra (puede que no tengas acceso).</div>`;
+      instalacionEl.innerHTML = `<div class="empty-state">No se pudo abrir esta obra (puede que no tengas acceso).</div>`;
       return;
     }
     titleEl.textContent = project.name;
@@ -117,24 +185,96 @@
   async function loadSections() {
     const { data: sections, error } = await supabase
       .from("project_sections")
-      .select("*, project_items(*)")
+      .select("*, project_items(*), template_sections(key)")
       .eq("project_id", projectId)
       .order("order_index");
 
     if (error) {
-      sectionsEl.innerHTML = `<div class="empty-state">${error.message}</div>`;
+      instalacionEl.innerHTML = `<div class="empty-state">${error.message}</div>`;
       return;
     }
 
-    allSections = sections.map(s => ({ ...s, project_items: (s.project_items || []).sort((a, b) => a.order_index - b.order_index) }));
+    allSections = sections.map(s => ({
+      ...s,
+      key: s.template_sections?.key || "",
+      project_items: (s.project_items || []).sort((a, b) => a.order_index - b.order_index),
+    }));
 
-    renderStats();
-    renderCorrectionsPanel();
-    sectionsEl.innerHTML = allSections.map(renderSection).join("");
+    renderCompras();
+    renderInstalacion();
+  }
+
+  // ---------------- COMPRAS ----------------
+  function renderCompras() {
+    const sections = allSections.filter(s => COMPRAS_KEYS.includes(s.key));
+    if (sections.length === 0) { comprasEl.innerHTML = '<div class="empty-state">Sin lista de compras en esta obra.</div>'; return; }
+    comprasEl.innerHTML = sections.map(renderComprasSection).join("");
     attachSectionHandlers();
-    attachItemHandlers();
+    attachComprasItemHandlers();
+  }
 
-    allSections.forEach(s => {
+  function renderComprasSection(section) {
+    const items = section.project_items;
+    const comprados = items.filter(i => i.status === "completado").length;
+    return `
+      <div class="section-head" data-section-toggle="${section.id}">
+        <div class="title">${escapeHtml(section.name)}</div>
+        <div class="count">${items.length ? comprados + "/" + items.length : ""} ${items.length ? "›" : ""}</div>
+      </div>
+      <div class="section-body open" id="body-${section.id}">
+        ${items.map(renderComprasItem).join("") || '<p class="item-note">Sin productos en esta sección.</p>'}
+      </div>
+    `;
+  }
+
+  function renderComprasItem(item) {
+    return `
+      <div class="item-card compra st-${item.status}" data-item-id="${item.id}">
+        <div class="item-name">${escapeHtml(item.name)}</div>
+        <div class="qty-row">
+          <button class="qty-btn" data-qty-action="dec">−</button>
+          <span class="qty-value" data-qty-value>${item.quantity ?? 0}</span>
+          <button class="qty-btn" data-qty-action="inc">+</button>
+          <span style="color:var(--ink-soft);font-size:13px">${escapeHtml(item.unit || "")}</span>
+        </div>
+        <div class="item-status-row">
+          <button class="status-btn sb-pendiente ${item.status === "pendiente" ? "active" : ""}" data-status="pendiente">Pendiente de comprar</button>
+          <button class="status-btn sb-completado ${item.status === "completado" ? "active" : ""}" data-status="completado">Comprado</button>
+          <button class="status-btn sb-falta_conseguir ${item.status === "falta_conseguir" ? "active" : ""}" data-status="falta_conseguir">Falta conseguir</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function attachComprasItemHandlers() {
+    comprasEl.querySelectorAll(".item-card").forEach(card => {
+      const itemId = card.dataset.itemId;
+      card.querySelectorAll(".status-btn").forEach(btn => {
+        btn.addEventListener("click", () => updateItem(itemId, { status: btn.dataset.status }, renderCompras));
+      });
+      const qtyValueEl = card.querySelector("[data-qty-value]");
+      card.querySelectorAll("[data-qty-action]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          let current = parseFloat(qtyValueEl.textContent) || 0;
+          current += btn.dataset.qtyAction === "inc" ? 1 : -1;
+          if (current < 0) current = 0;
+          qtyValueEl.textContent = current;
+          updateItem(itemId, { quantity: current }, null, { skipRerender: true });
+        });
+      });
+    });
+  }
+
+  // ---------------- INSTALACIÓN ----------------
+  function renderInstalacion() {
+    const sections = allSections.filter(s => INSTALACION_KEYS.includes(s.key));
+    renderStats(sections);
+    renderCorrectionsPanel(sections);
+    instalacionEl.innerHTML = sections.map(renderInstalacionSection).join("");
+    attachSectionHandlers();
+    attachInstalacionItemHandlers();
+
+    sections.forEach(s => {
       const hasCorrection = s.project_items.some(i => i.status === "requiere_correccion");
       if (hasCorrection) {
         const body = document.getElementById("body-" + s.id);
@@ -143,12 +283,12 @@
     });
   }
 
-  function allItems() {
-    return allSections.flatMap(s => s.project_items.map(i => ({ ...i, sectionName: s.name })));
+  function instalacionItems() {
+    return allSections.filter(s => INSTALACION_KEYS.includes(s.key)).flatMap(s => s.project_items.map(i => ({ ...i, sectionName: s.name })));
   }
 
-  function renderStats() {
-    const items = allItems();
+  function renderStats(sections) {
+    const items = sections.flatMap(s => s.project_items);
     const total = items.length;
     const completados = items.filter(i => i.status === "completado").length;
     const correcciones = items.filter(i => i.status === "requiere_correccion").length;
@@ -166,22 +306,17 @@
     `;
   }
 
-  function renderCorrectionsPanel() {
-    const pending = allItems().filter(i => i.status === "requiere_correccion");
+  function renderCorrectionsPanel(sections) {
+    const pending = sections.flatMap(s => s.project_items.map(i => ({ ...i, sectionName: s.name }))).filter(i => i.status === "requiere_correccion");
     if (pending.length === 0) { correctionsEl.style.display = "none"; return; }
-
     correctionsEl.style.display = "block";
     correctionsEl.innerHTML = `
-      <div class="cp-head">⚠️ Correcciones pendientes (${pending.length})</div>
-      ${pending.map(i => `
-        <div class="cp-item">
-          <span>${escapeHtml(i.name)} <span style="color:var(--ink-soft)">— ${escapeHtml(i.sectionName)}</span></span>
-        </div>
-      `).join("")}
+      <div class="cp-head">⚠️ Correcciones pendientes — ${pending.length} punto(s) todavía necesitan revisión</div>
+      ${pending.map(i => `<div class="cp-item">${escapeHtml(i.name)} — <span style="color:var(--ink-soft)">${escapeHtml(i.sectionName)}</span></div>`).join("")}
     `;
   }
 
-  function renderSection(section) {
+  function renderInstalacionSection(section) {
     const items = section.project_items;
     const done = items.filter(i => i.status === "completado").length;
     return `
@@ -190,7 +325,7 @@
         <div class="count">${items.length ? done + "/" + items.length : ""} ${items.length ? "›" : ""}</div>
       </div>
       <div class="section-body" id="body-${section.id}">
-        ${items.map((item, idx) => renderItem(item, idx + 1)).join("") || '<p class="item-note">Sin ítems en esta sección.</p>'}
+        ${items.map((item, idx) => renderInstalacionItem(item, idx + 1)).join("") || '<p class="item-note">Sin puntos en esta sección.</p>'}
       </div>
     `;
   }
@@ -202,8 +337,7 @@
     return number;
   }
 
-  function renderItem(item, number) {
-    const isCompra = item.item_type === "compra";
+  function renderInstalacionItem(item, number) {
     const needsCorrection = item.status === "requiere_correccion";
     return `
       <div class="item-card st-${item.status}" data-item-id="${item.id}">
@@ -211,18 +345,10 @@
           <span class="item-badge b-${item.status}">${badgeContent(item, number)}</span>
           <div class="item-name">${escapeHtml(item.name)}</div>
         </div>
-        ${isCompra ? `
-          <div class="qty-row">
-            <button class="qty-btn" data-qty-action="dec">−</button>
-            <span class="qty-value" data-qty-value>${item.quantity ?? 0}</span>
-            <button class="qty-btn" data-qty-action="inc">+</button>
-            <span style="color:var(--ink-soft);font-size:13px">${escapeHtml(item.unit || "")}</span>
-          </div>
-        ` : ""}
         <div class="item-status-row">
           ${["pendiente","completado","requiere_correccion","no_aplica"].map(st => `
             <button class="status-btn sb-${st} ${item.status === st ? "active" : ""}" data-status="${st}">
-              ${st === "pendiente" ? "Pendiente" : st === "completado" ? "Hecho" : st === "requiere_correccion" ? "Corrección" : "No aplica"}
+              ${st === "pendiente" ? "Pendiente" : st === "completado" ? "Completado" : st === "requiere_correccion" ? "Corrección" : "No aplica"}
             </button>
           `).join("")}
         </div>
@@ -237,7 +363,7 @@
             <button class="confirm-btn" data-action="resolve-correction">Marcar como corregido</button>
           </div>
         ` : ""}
-        <button class="history-toggle" data-action="toggle-history">Ver historial</button>
+        <button class="history-toggle" data-action="toggle-history">Ver historial de este punto</button>
         <div class="history-list" data-history style="display:none"></div>
         <input type="file" accept="image/*" capture="environment" style="display:none" data-photo-input>
       </div>
@@ -253,20 +379,20 @@
     });
   }
 
-  function attachItemHandlers() {
-    document.querySelectorAll(".item-card").forEach(card => {
+  function attachInstalacionItemHandlers() {
+    instalacionEl.querySelectorAll(".item-card").forEach(card => {
       const itemId = card.dataset.itemId;
 
       card.querySelectorAll(".status-btn").forEach(btn => {
         btn.addEventListener("click", async () => {
           const newStatus = btn.dataset.status;
           if (newStatus === "requiere_correccion") {
-            const note = prompt("Describe qué necesita corrección:");
+            const note = prompt("Escriba qué necesita corrección:");
             if (note === null) return;
-            await updateItem(itemId, { status: newStatus, note });
+            await updateItem(itemId, { status: newStatus, note }, renderInstalacion);
             await logObservation(itemId, `⚠️ Requiere corrección: ${note}`);
           } else {
-            await updateItem(itemId, { status: newStatus });
+            await updateItem(itemId, { status: newStatus }, renderInstalacion);
           }
         });
       });
@@ -274,26 +400,15 @@
       const resolveBtn = card.querySelector('[data-action="resolve-correction"]');
       if (resolveBtn) {
         resolveBtn.addEventListener("click", async () => {
-          await updateItem(itemId, { status: "completado", note: "" });
+          await updateItem(itemId, { status: "completado", note: "" }, renderInstalacion);
           await logObservation(itemId, "✅ Corrección confirmada y resuelta.");
         });
       }
 
-      const qtyValueEl = card.querySelector("[data-qty-value]");
-      card.querySelectorAll("[data-qty-action]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          let current = parseFloat(qtyValueEl.textContent) || 0;
-          current += btn.dataset.qtyAction === "inc" ? 1 : -1;
-          if (current < 0) current = 0;
-          qtyValueEl.textContent = current;
-          updateItem(itemId, { quantity: current }, { skipRerender: true });
-        });
-      });
-
       card.querySelector('[data-action="note"]').addEventListener("click", async () => {
-        const note = prompt("Nota para este ítem:");
+        const note = prompt("Nota para este punto:");
         if (note === null) return;
-        updateItem(itemId, { note });
+        updateItem(itemId, { note }, renderInstalacion);
       });
 
       card.querySelector('[data-action="toggle-history"]').addEventListener("click", () => toggleHistory(itemId, card));
@@ -304,58 +419,86 @@
     });
   }
 
+  async function toggleHistory(itemId, card) {
+    const box = card.querySelector("[data-history]");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.style.display = "block";
+    box.innerHTML = "Cargando…";
+    const { data: obs, error } = await supabase
+      .from("project_observations")
+      .select("body, created_at, profiles(full_name)")
+      .eq("item_id", itemId)
+      .order("created_at", { ascending: true });
+    if (error || !obs || obs.length === 0) { box.innerHTML = "<em>Sin historial todavía.</em>"; return; }
+    box.innerHTML = obs.map(o => `
+      <div class="h-entry">${escapeHtml(o.body)}<br><span style="color:var(--ink-soft)">${o.profiles?.full_name || "—"} · ${new Date(o.created_at).toLocaleString("es-CO")}</span></div>
+    `).join("");
+  }
+
+  // ---------------- FOTOS Y NOTAS GENERALES ----------------
+  async function addGeneralNote() {
+    const input = document.getElementById("general-note-input");
+    const body = input.value.trim();
+    if (!body) return;
+    await logObservation(null, body);
+    input.value = "";
+    showToast("Nota guardada");
+    loadFotosFeed();
+  }
+
+  async function loadFotosFeed() {
+    fotosEl.innerHTML = '<div class="loading-state">Cargando…</div>';
+    const { data: obs } = await supabase
+      .from("project_observations")
+      .select("body, created_at, profiles(full_name)")
+      .eq("project_id", projectId)
+      .is("item_id", null)
+      .order("created_at", { ascending: false });
+
+    if (!obs || obs.length === 0) { fotosEl.innerHTML = '<div class="empty-state">Sin notas generales todavía.</div>'; return; }
+    fotosEl.innerHTML = obs.map(o => `
+      <div class="feed-entry">${escapeHtml(o.body)}<div class="who">${o.profiles?.full_name || "—"} · ${new Date(o.created_at).toLocaleString("es-CO")}</div></div>
+    `).join("");
+  }
+
+  // ---------------- HISTORIAL GENERAL ----------------
+  async function loadHistorialFeed() {
+    historialEl.innerHTML = '<div class="loading-state">Cargando…</div>';
+    const { data: obs } = await supabase
+      .from("project_observations")
+      .select("body, created_at, profiles(full_name), project_items(name)")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+
+    if (!obs || obs.length === 0) { historialEl.innerHTML = '<div class="empty-state">Sin historial todavía.</div>'; return; }
+    historialEl.innerHTML = obs.map(o => `
+      <div class="feed-entry">
+        ${o.project_items?.name ? `<strong>${escapeHtml(o.project_items.name)}</strong><br>` : ""}
+        ${escapeHtml(o.body)}
+        <div class="who">${o.profiles?.full_name || "—"} · ${new Date(o.created_at).toLocaleString("es-CO")}</div>
+      </div>
+    `).join("");
+  }
+
+  // ---------------- Helpers compartidos ----------------
   async function logObservation(itemId, body) {
     await supabase.from("project_observations").insert({
       project_id: projectId, item_id: itemId, body, created_by: currentProfile.id,
     });
   }
 
-  async function toggleHistory(itemId, card) {
-    const box = card.querySelector("[data-history]");
-    if (box.style.display === "block") { box.style.display = "none"; return; }
-
-    box.style.display = "block";
-    box.innerHTML = "Cargando…";
-
-    const { data: obs, error } = await supabase
-      .from("project_observations")
-      .select("body, created_at, profiles(full_name)")
-      .eq("item_id", itemId)
-      .order("created_at", { ascending: true });
-
-    if (error || !obs || obs.length === 0) {
-      box.innerHTML = "<em>Sin historial todavía.</em>";
-      return;
-    }
-
-    box.innerHTML = obs.map(o => `
-      <div class="h-entry">
-        ${escapeHtml(o.body)}<br>
-        <span style="color:var(--ink-soft)">${o.profiles?.full_name || "—"} · ${new Date(o.created_at).toLocaleString("es-CO")}</span>
-      </div>
-    `).join("");
-  }
-
-  async function updateItem(itemId, values, opts = {}) {
+  async function updateItem(itemId, values, rerenderFn, opts = {}) {
     const { error } = await supabase.from("project_items").update(values).eq("id", itemId);
-    if (error) {
-      alert("No se pudo guardar el cambio (revisa tu conexión): " + error.message);
-      return;
-    }
-    if (!opts.skipRerender) {
-      await loadSections();
-      await recomputeProgress();
-    } else {
-      await recomputeProgress();
-    }
+    if (error) { alert("No se pudo guardar el cambio (revisa tu conexión): " + error.message); return; }
+    await loadSections();
+    if (!opts.skipRerender) await recomputeProgress();
   }
 
   async function uploadPhoto(itemId, file) {
     if (!file) return;
-    const path = `${projectId}/${itemId}/${Date.now()}_${file.name}`;
+    const path = `${projectId}/${itemId || "general"}/${Date.now()}_${file.name}`;
     const { error: upErr } = await supabase.storage.from("evidencias").upload(path, file);
     if (upErr) { alert("No se pudo subir la foto: " + upErr.message); return; }
-
     await supabase.from("project_attachments").insert({
       project_id: projectId, item_id: itemId, storage_path: path, uploaded_by: currentProfile.id,
     });
@@ -363,13 +506,16 @@
   }
 
   async function recomputeProgress() {
+    // El avance de la obra solo cuenta instalación y control de calidad (no la lista de compras).
     const { data: items } = await supabase
       .from("project_items")
-      .select("status, project_sections!inner(project_id)")
+      .select("status, project_sections!inner(project_id, template_sections(key))")
       .eq("project_sections.project_id", projectId);
-    if (!items || items.length === 0) return;
-    const done = items.filter(i => i.status === "completado").length;
-    const pct = Math.round((done / items.length) * 100);
+    if (!items) return;
+    const instalacion = items.filter(i => INSTALACION_KEYS.includes(i.project_sections?.template_sections?.key));
+    if (instalacion.length === 0) return;
+    const done = instalacion.filter(i => i.status === "completado").length;
+    const pct = Math.round((done / instalacion.length) * 100);
     await supabase.from("projects").update({ progress_pct: pct }).eq("id", projectId);
   }
 

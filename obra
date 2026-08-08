@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Obra — HD Cocinas Operaciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <div class="topbar">
+    <a class="back" href="obras.html">‹</a>
+    <h1 id="project-title">Obra</h1>
+    <span></span>
+  </div>
+
+  <div id="summary-card"></div>
+  <div id="sections-container"><div class="loading-state">Cargando…</div></div>
+</div>
+
+<script type="module">
+  import { supabase, requireSession, getCurrentProfile } from "supabase.js";
+  import { statusLabel, itemStatusLabel, escapeHtml } from "format.js";
+
+  const params = new URLSearchParams(window.location.search);
+  const projectId = params.get("id");
+  const summaryEl = document.getElementById("summary-card");
+  const sectionsEl = document.getElementById("sections-container");
+  const titleEl = document.getElementById("project-title");
+
+  let currentProfile = null;
+  let canEditStructure = false; // admin/supervisor
+
+  async function init() {
+    if (!projectId) { sectionsEl.innerHTML = '<div class="empty-state">Falta el id de la obra.</div>'; return; }
+    const session = await requireSession();
+    if (!session) return;
+
+    currentProfile = await getCurrentProfile();
+    canEditStructure = currentProfile.role === "admin" || currentProfile.role === "supervisor";
+
+    await loadProject();
+  }
+
+  async function loadProject() {
+    const { data: project, error } = await supabase.from("projects").select("*").eq("id", projectId).single();
+    if (error || !project) {
+      sectionsEl.innerHTML = `<div class="empty-state">No se pudo abrir esta obra (puede que no tengas acceso).</div>`;
+      return;
+    }
+
+    titleEl.textContent = project.name;
+    renderSummary(project);
+    await loadSections();
+  }
+
+  function renderSummary(project) {
+    summaryEl.innerHTML = `
+      <div class="project-card" style="cursor:default">
+        <div class="meta">${project.client_name ? "Cliente: " + escapeHtml(project.client_name) : ""}</div>
+        <div class="meta">${project.address ? escapeHtml(project.address) : ""}</div>
+        <div class="progress-track"><div class="progress-fill" style="width:${project.progress_pct || 0}%"></div></div>
+        <span class="status-badge status-${project.status}">${statusLabel(project.status)} · ${project.progress_pct || 0}%</span>
+      </div>
+    `;
+  }
+
+  async function loadSections() {
+    const { data: sections, error } = await supabase
+      .from("project_sections")
+      .select("*, project_items(*)")
+      .eq("project_id", projectId)
+      .order("order_index");
+
+    if (error) {
+      sectionsEl.innerHTML = `<div class="empty-state">${error.message}</div>`;
+      return;
+    }
+
+    sectionsEl.innerHTML = sections.map(renderSection).join("");
+    attachSectionHandlers();
+    attachItemHandlers();
+  }
+
+  function renderSection(section) {
+    const items = (section.project_items || []).sort((a, b) => a.order_index - b.order_index);
+    const done = items.filter(i => i.status === "completado" || i.status === "no_aplica").length;
+    return `
+      <div class="section-head" data-section-toggle="${section.id}">
+        <div class="title">${escapeHtml(section.name)}</div>
+        <div class="count">${items.length ? done + "/" + items.length : ""} ${items.length ? "›" : ""}</div>
+      </div>
+      <div class="section-body" id="body-${section.id}">
+        ${items.map(renderItem).join("") || '<p class="item-note">Sin ítems en esta sección.</p>'}
+      </div>
+    `;
+  }
+
+  function renderItem(item) {
+    const isCompra = item.item_type === "compra";
+    return `
+      <div class="item-card st-${item.status}" data-item-id="${item.id}">
+        <div class="item-name">${escapeHtml(item.name)}</div>
+        ${isCompra ? `
+          <div class="qty-row">
+            <button class="qty-btn" data-qty-action="dec">−</button>
+            <span class="qty-value" data-qty-value>${item.quantity ?? 0}</span>
+            <button class="qty-btn" data-qty-action="inc">+</button>
+            <span style="color:var(--ink-soft);font-size:13px">${escapeHtml(item.unit || "")}</span>
+          </div>
+        ` : ""}
+        <div class="item-status-row">
+          ${["pendiente","completado","requiere_correccion","no_aplica"].map(st => `
+            <button class="status-btn sb-${st} ${item.status === st ? "active" : ""}" data-status="${st}">
+              ${itemStatusLabel(st)}
+            </button>
+          `).join("")}
+        </div>
+        <div class="item-actions">
+          <button class="icon-btn" data-action="note">📝 Nota</button>
+          <button class="icon-btn" data-action="photo">📷 Foto</button>
+        </div>
+        ${item.note ? `<div class="item-note">${escapeHtml(item.note)}</div>` : ""}
+        <input type="file" accept="image/*" capture="environment" style="display:none" data-photo-input>
+      </div>
+    `;
+  }
+
+  function attachSectionHandlers() {
+    document.querySelectorAll("[data-section-toggle]").forEach(head => {
+      head.addEventListener("click", () => {
+        const body = document.getElementById("body-" + head.dataset.sectionToggle);
+        body.classList.toggle("open");
+      });
+    });
+  }
+
+  function attachItemHandlers() {
+    document.querySelectorAll(".item-card").forEach(card => {
+      const itemId = card.dataset.itemId;
+
+      card.querySelectorAll(".status-btn").forEach(btn => {
+        btn.addEventListener("click", () => updateItem(itemId, { status: btn.dataset.status }, card));
+      });
+
+      const qtyValueEl = card.querySelector("[data-qty-value]");
+      card.querySelectorAll("[data-qty-action]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          let current = parseFloat(qtyValueEl.textContent) || 0;
+          current += btn.dataset.qtyAction === "inc" ? 1 : -1;
+          if (current < 0) current = 0;
+          qtyValueEl.textContent = current;
+          updateItem(itemId, { quantity: current }, card, { skipRerender: true });
+        });
+      });
+
+      card.querySelector('[data-action="note"]').addEventListener("click", async () => {
+        const note = prompt("Nota para este ítem:");
+        if (note === null) return;
+        updateItem(itemId, { note }, card);
+      });
+
+      const photoInput = card.querySelector("[data-photo-input]");
+      card.querySelector('[data-action="photo"]').addEventListener("click", () => photoInput.click());
+      photoInput.addEventListener("change", () => uploadPhoto(itemId, photoInput.files[0]));
+    });
+  }
+
+  async function updateItem(itemId, values, card, opts = {}) {
+    const { error } = await supabase.from("project_items").update(values).eq("id", itemId);
+    if (error) {
+      alert("No se pudo guardar el cambio (revisa tu conexión): " + error.message);
+      return;
+    }
+    if (!opts.skipRerender) {
+      await loadSections(); // re-render simple y confiable
+      await recomputeProgress();
+    } else {
+      await recomputeProgress();
+    }
+  }
+
+  async function uploadPhoto(itemId, file) {
+    if (!file) return;
+    const path = `${projectId}/${itemId}/${Date.now()}_${file.name}`;
+    const { error: upErr } = await supabase.storage.from("evidencias").upload(path, file);
+    if (upErr) { alert("No se pudo subir la foto: " + upErr.message); return; }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("project_attachments").insert({
+      project_id: projectId, item_id: itemId, storage_path: path, uploaded_by: user.id,
+    });
+    showToast("Foto guardada");
+  }
+
+  async function recomputeProgress() {
+    const { data: items } = await supabase
+      .from("project_items")
+      .select("status, project_sections!inner(project_id)")
+      .eq("project_sections.project_id", projectId);
+    if (!items || items.length === 0) return;
+    const done = items.filter(i => i.status === "completado" || i.status === "no_aplica").length;
+    const pct = Math.round((done / items.length) * 100);
+    await supabase.from("projects").update({ progress_pct: pct }).eq("id", projectId);
+  }
+
+  function showToast(msg) {
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 1800);
+  }
+
+  init();
+</script>
+</body>
+</html>

@@ -113,7 +113,7 @@
 </div>
 
 <script type="module">
-  import { supabase, requireSession, getCurrentProfile } from "./supabase.js";
+  import { supabase, requireSession, getCurrentProfile, queueOfflineWrite, getOfflineQueue } from "./supabase.js";
   import { statusLabel, escapeHtml } from "./format.js";
 
   const COMPRAS_KEYS = ["compras_dia1", "tomas", "compras_dia2", "kit_carro", "kit_instalacion"];
@@ -132,6 +132,7 @@
 
   let currentProfile = null;
   let allSections = [];
+  let openSectionIds = new Set();
 
   async function init() {
     if (!projectId) { instalacionEl.innerHTML = '<div class="empty-state">Falta el id de la obra.</div>'; return; }
@@ -140,6 +141,8 @@
 
     currentProfile = await getCurrentProfile();
     attachTabHandlers();
+    const pending = getOfflineQueue();
+    if (pending.length > 0) showToast(`${pending.length} cambio(s) sin conexión, pendientes de guardar`);
     await loadProject();
   }
 
@@ -209,7 +212,7 @@
     const sections = allSections.filter(s => COMPRAS_KEYS.includes(s.key));
     if (sections.length === 0) { comprasEl.innerHTML = '<div class="empty-state">Sin lista de compras en esta obra.</div>'; return; }
     comprasEl.innerHTML = sections.map(renderComprasSection).join("");
-    attachSectionHandlers();
+    attachSectionHandlers(comprasEl);
     attachComprasItemHandlers();
   }
 
@@ -271,14 +274,15 @@
     renderStats(sections);
     renderCorrectionsPanel(sections);
     instalacionEl.innerHTML = sections.map(renderInstalacionSection).join("");
-    attachSectionHandlers();
+    attachSectionHandlers(instalacionEl);
     attachInstalacionItemHandlers();
 
     sections.forEach(s => {
       const hasCorrection = s.project_items.some(i => i.status === "requiere_correccion");
-      if (hasCorrection) {
-        const body = document.getElementById("body-" + s.id);
-        if (body) body.classList.add("open");
+      const body = document.getElementById("body-" + s.id);
+      if (body && (hasCorrection || openSectionIds.has(s.id))) {
+        body.classList.add("open");
+        openSectionIds.add(s.id);
       }
     });
   }
@@ -370,11 +374,14 @@
     `;
   }
 
-  function attachSectionHandlers() {
-    document.querySelectorAll("[data-section-toggle]").forEach(head => {
+  function attachSectionHandlers(container) {
+    container.querySelectorAll("[data-section-toggle]").forEach(head => {
       head.addEventListener("click", () => {
-        const body = document.getElementById("body-" + head.dataset.sectionToggle);
+        const id = head.dataset.sectionToggle;
+        const body = document.getElementById("body-" + id);
         body.classList.toggle("open");
+        if (body.classList.contains("open")) openSectionIds.add(id);
+        else openSectionIds.delete(id);
       });
     });
   }
@@ -482,14 +489,34 @@
 
   // ---------------- Helpers compartidos ----------------
   async function logObservation(itemId, body) {
-    await supabase.from("project_observations").insert({
-      project_id: projectId, item_id: itemId, body, created_by: currentProfile.id,
-    });
+    const values = { project_id: projectId, item_id: itemId, body, created_by: currentProfile.id };
+    try {
+      await supabase.from("project_observations").insert(values);
+    } catch (networkErr) {
+      queueOfflineWrite({ op: "insert", table: "project_observations", values });
+      showToast("Sin conexión — la nota se guardará cuando vuelva la señal");
+    }
+  }
+
+  function applyLocalItemUpdate(itemId, values) {
+    for (const s of allSections) {
+      const item = s.project_items.find(i => i.id === itemId);
+      if (item) Object.assign(item, values);
+    }
   }
 
   async function updateItem(itemId, values, rerenderFn, opts = {}) {
-    const { error } = await supabase.from("project_items").update(values).eq("id", itemId);
-    if (error) { alert("No se pudo guardar el cambio (revisa tu conexión): " + error.message); return; }
+    try {
+      const { error } = await supabase.from("project_items").update(values).eq("id", itemId);
+      if (error) { alert("No se pudo guardar el cambio: " + error.message); return; }
+    } catch (networkErr) {
+      // Sin conexión: se guarda localmente y se reintenta solo cuando vuelva la señal.
+      applyLocalItemUpdate(itemId, values);
+      if (rerenderFn) rerenderFn();
+      queueOfflineWrite({ op: "update", table: "project_items", id: itemId, values });
+      showToast("Sin conexión — se guardará cuando vuelva la señal");
+      return;
+    }
     await loadSections();
     if (!opts.skipRerender) await recomputeProgress();
   }
@@ -497,12 +524,16 @@
   async function uploadPhoto(itemId, file) {
     if (!file) return;
     const path = `${projectId}/${itemId || "general"}/${Date.now()}_${file.name}`;
-    const { error: upErr } = await supabase.storage.from("evidencias").upload(path, file);
-    if (upErr) { alert("No se pudo subir la foto: " + upErr.message); return; }
-    await supabase.from("project_attachments").insert({
-      project_id: projectId, item_id: itemId, storage_path: path, uploaded_by: currentProfile.id,
-    });
-    showToast("Foto guardada");
+    try {
+      const { error: upErr } = await supabase.storage.from("evidencias").upload(path, file);
+      if (upErr) { alert("No se pudo subir la foto: " + upErr.message); return; }
+      await supabase.from("project_attachments").insert({
+        project_id: projectId, item_id: itemId, storage_path: path, uploaded_by: currentProfile.id,
+      });
+      showToast("Foto guardada");
+    } catch (networkErr) {
+      alert("Sin conexión: la foto NO se pudo subir todavía. Las fotos no se guardan en espera como las notas — inténtalo de nuevo cuando tengas señal.");
+    }
   }
 
   async function recomputeProgress() {

@@ -81,12 +81,17 @@ export function clearOfflineQueueEntry(index) {
 }
 
 // Reintenta escrituras pendientes cuando vuelve la señal.
+// Cada entrada trae op: "update" (cambios de estado/cantidad) o "insert" (notas nuevas).
 window.addEventListener("online", async () => {
   const queue = getOfflineQueue();
   for (let i = queue.length - 1; i >= 0; i--) {
     const entry = queue[i];
     try {
-      await supabase.from(entry.table).update(entry.values).eq("id", entry.id);
+      if (entry.op === "insert") {
+        await supabase.from(entry.table).insert(entry.values);
+      } else {
+        await supabase.from(entry.table).update(entry.values).eq("id", entry.id);
+      }
       clearOfflineQueueEntry(i);
     } catch (e) {
       // se queda en la cola para el próximo intento

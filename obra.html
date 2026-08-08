@@ -8,6 +8,51 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  .item-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%; font-size: 13px; font-weight: 700;
+    background: var(--line); color: var(--ink-soft); flex-shrink: 0;
+  }
+  .item-badge.b-completado { background: var(--completado-ink); color: #fff; }
+  .item-badge.b-requiere_correccion { background: var(--correccion-ink); color: #fff; }
+  .item-badge.b-no_aplica { background: var(--no-aplica-ink); color: #fff; }
+  .item-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .item-name-row .item-name { margin-bottom: 0; }
+
+  .correction-box {
+    margin-top: 10px; padding: 12px; border-radius: var(--radius-sm);
+    background: #fff; border: 2px solid var(--correccion-ink);
+  }
+  .correction-box .confirm-btn {
+    width: 100%; min-height: 48px; margin-top: 8px;
+    background: var(--correccion-ink); color: #fff; border: none;
+    border-radius: var(--radius-sm); font-weight: 700; font-size: 15px;
+  }
+
+  #corrections-panel {
+    margin: 0 16px 14px; background: #fff; border: 2px solid var(--correccion-ink);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  #corrections-panel .cp-head {
+    padding: 12px 16px; background: var(--correccion); color: var(--correccion-ink);
+    font-weight: 700; font-size: 14px;
+  }
+  #corrections-panel .cp-item {
+    padding: 10px 16px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center; font-size: 14px;
+  }
+
+  .stats-bar { display: flex; gap: 8px; margin: 0 16px 14px; flex-wrap: wrap; }
+  .stats-pill { flex: 1 1 auto; background: #fff; border-radius: var(--radius-sm); padding: 10px 12px; text-align: center; box-shadow: var(--shadow); }
+  .stats-pill .num { font-size: 18px; font-weight: 700; display: block; }
+  .stats-pill .lbl { font-size: 11px; color: var(--ink-soft); }
+
+  .history-toggle { font-size: 12px; color: var(--ink-soft); margin-top: 8px; text-decoration: underline; background: none; border: none; padding: 0; }
+  .history-list { margin-top: 8px; padding: 10px; background: var(--bg); border-radius: 8px; font-size: 12px; }
+  .history-list .h-entry { padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .history-list .h-entry:last-child { border-bottom: none; }
+</style>
 </head>
 <body>
 <div class="app-shell">
@@ -18,21 +63,25 @@
   </div>
 
   <div id="summary-card"></div>
+  <div id="stats-bar"></div>
+  <div id="corrections-panel" style="display:none"></div>
   <div id="sections-container"><div class="loading-state">Cargando…</div></div>
 </div>
 
 <script type="module">
   import { supabase, requireSession, getCurrentProfile } from "./supabase.js";
-  import { statusLabel, itemStatusLabel, escapeHtml } from "./format.js";
+  import { statusLabel, escapeHtml } from "./format.js";
 
   const params = new URLSearchParams(window.location.search);
   const projectId = params.get("id");
   const summaryEl = document.getElementById("summary-card");
+  const statsEl = document.getElementById("stats-bar");
+  const correctionsEl = document.getElementById("corrections-panel");
   const sectionsEl = document.getElementById("sections-container");
   const titleEl = document.getElementById("project-title");
 
   let currentProfile = null;
-  let canEditStructure = false; // admin/supervisor
+  let allSections = [];
 
   async function init() {
     if (!projectId) { sectionsEl.innerHTML = '<div class="empty-state">Falta el id de la obra.</div>'; return; }
@@ -40,8 +89,6 @@
     if (!session) return;
 
     currentProfile = await getCurrentProfile();
-    canEditStructure = currentProfile.role === "admin" || currentProfile.role === "supervisor";
-
     await loadProject();
   }
 
@@ -51,7 +98,6 @@
       sectionsEl.innerHTML = `<div class="empty-state">No se pudo abrir esta obra (puede que no tengas acceso).</div>`;
       return;
     }
-
     titleEl.textContent = project.name;
     renderSummary(project);
     await loadSections();
@@ -80,30 +126,91 @@
       return;
     }
 
-    sectionsEl.innerHTML = sections.map(renderSection).join("");
+    allSections = sections.map(s => ({ ...s, project_items: (s.project_items || []).sort((a, b) => a.order_index - b.order_index) }));
+
+    renderStats();
+    renderCorrectionsPanel();
+    sectionsEl.innerHTML = allSections.map(renderSection).join("");
     attachSectionHandlers();
     attachItemHandlers();
+
+    allSections.forEach(s => {
+      const hasCorrection = s.project_items.some(i => i.status === "requiere_correccion");
+      if (hasCorrection) {
+        const body = document.getElementById("body-" + s.id);
+        if (body) body.classList.add("open");
+      }
+    });
+  }
+
+  function allItems() {
+    return allSections.flatMap(s => s.project_items.map(i => ({ ...i, sectionName: s.name })));
+  }
+
+  function renderStats() {
+    const items = allItems();
+    const total = items.length;
+    const completados = items.filter(i => i.status === "completado").length;
+    const correcciones = items.filter(i => i.status === "requiere_correccion").length;
+    const pendientes = total - completados - correcciones - items.filter(i => i.status === "no_aplica").length;
+    const pct = total ? Math.round((completados / total) * 100) : 0;
+
+    statsEl.innerHTML = `
+      <div class="stats-bar">
+        <div class="stats-pill"><span class="num">${total}</span><span class="lbl">Total</span></div>
+        <div class="stats-pill"><span class="num" style="color:var(--completado-ink)">${completados}</span><span class="lbl">Completados</span></div>
+        <div class="stats-pill"><span class="num">${pendientes}</span><span class="lbl">Pendientes</span></div>
+        <div class="stats-pill"><span class="num" style="color:var(--correccion-ink)">${correcciones}</span><span class="lbl">Correcciones</span></div>
+        <div class="stats-pill"><span class="num">${pct}%</span><span class="lbl">Avance</span></div>
+      </div>
+    `;
+  }
+
+  function renderCorrectionsPanel() {
+    const pending = allItems().filter(i => i.status === "requiere_correccion");
+    if (pending.length === 0) { correctionsEl.style.display = "none"; return; }
+
+    correctionsEl.style.display = "block";
+    correctionsEl.innerHTML = `
+      <div class="cp-head">⚠️ Correcciones pendientes (${pending.length})</div>
+      ${pending.map(i => `
+        <div class="cp-item">
+          <span>${escapeHtml(i.name)} <span style="color:var(--ink-soft)">— ${escapeHtml(i.sectionName)}</span></span>
+        </div>
+      `).join("")}
+    `;
   }
 
   function renderSection(section) {
-    const items = (section.project_items || []).sort((a, b) => a.order_index - b.order_index);
-    const done = items.filter(i => i.status === "completado" || i.status === "no_aplica").length;
+    const items = section.project_items;
+    const done = items.filter(i => i.status === "completado").length;
     return `
       <div class="section-head" data-section-toggle="${section.id}">
         <div class="title">${escapeHtml(section.name)}</div>
         <div class="count">${items.length ? done + "/" + items.length : ""} ${items.length ? "›" : ""}</div>
       </div>
       <div class="section-body" id="body-${section.id}">
-        ${items.map(renderItem).join("") || '<p class="item-note">Sin ítems en esta sección.</p>'}
+        ${items.map((item, idx) => renderItem(item, idx + 1)).join("") || '<p class="item-note">Sin ítems en esta sección.</p>'}
       </div>
     `;
   }
 
-  function renderItem(item) {
+  function badgeContent(item, number) {
+    if (item.status === "completado") return "✓";
+    if (item.status === "requiere_correccion") return "✕";
+    if (item.status === "no_aplica") return "–";
+    return number;
+  }
+
+  function renderItem(item, number) {
     const isCompra = item.item_type === "compra";
+    const needsCorrection = item.status === "requiere_correccion";
     return `
       <div class="item-card st-${item.status}" data-item-id="${item.id}">
-        <div class="item-name">${escapeHtml(item.name)}</div>
+        <div class="item-name-row">
+          <span class="item-badge b-${item.status}">${badgeContent(item, number)}</span>
+          <div class="item-name">${escapeHtml(item.name)}</div>
+        </div>
         ${isCompra ? `
           <div class="qty-row">
             <button class="qty-btn" data-qty-action="dec">−</button>
@@ -115,7 +222,7 @@
         <div class="item-status-row">
           ${["pendiente","completado","requiere_correccion","no_aplica"].map(st => `
             <button class="status-btn sb-${st} ${item.status === st ? "active" : ""}" data-status="${st}">
-              ${itemStatusLabel(st)}
+              ${st === "pendiente" ? "Pendiente" : st === "completado" ? "Hecho" : st === "requiere_correccion" ? "Corrección" : "No aplica"}
             </button>
           `).join("")}
         </div>
@@ -124,6 +231,14 @@
           <button class="icon-btn" data-action="photo">📷 Foto</button>
         </div>
         ${item.note ? `<div class="item-note">${escapeHtml(item.note)}</div>` : ""}
+        ${needsCorrection ? `
+          <div class="correction-box">
+            <strong>¿La corrección ya fue realizada?</strong>
+            <button class="confirm-btn" data-action="resolve-correction">Marcar como corregido</button>
+          </div>
+        ` : ""}
+        <button class="history-toggle" data-action="toggle-history">Ver historial</button>
+        <div class="history-list" data-history style="display:none"></div>
         <input type="file" accept="image/*" capture="environment" style="display:none" data-photo-input>
       </div>
     `;
@@ -143,8 +258,26 @@
       const itemId = card.dataset.itemId;
 
       card.querySelectorAll(".status-btn").forEach(btn => {
-        btn.addEventListener("click", () => updateItem(itemId, { status: btn.dataset.status }, card));
+        btn.addEventListener("click", async () => {
+          const newStatus = btn.dataset.status;
+          if (newStatus === "requiere_correccion") {
+            const note = prompt("Describe qué necesita corrección:");
+            if (note === null) return;
+            await updateItem(itemId, { status: newStatus, note });
+            await logObservation(itemId, `⚠️ Requiere corrección: ${note}`);
+          } else {
+            await updateItem(itemId, { status: newStatus });
+          }
+        });
       });
+
+      const resolveBtn = card.querySelector('[data-action="resolve-correction"]');
+      if (resolveBtn) {
+        resolveBtn.addEventListener("click", async () => {
+          await updateItem(itemId, { status: "completado", note: "" });
+          await logObservation(itemId, "✅ Corrección confirmada y resuelta.");
+        });
+      }
 
       const qtyValueEl = card.querySelector("[data-qty-value]");
       card.querySelectorAll("[data-qty-action]").forEach(btn => {
@@ -153,15 +286,17 @@
           current += btn.dataset.qtyAction === "inc" ? 1 : -1;
           if (current < 0) current = 0;
           qtyValueEl.textContent = current;
-          updateItem(itemId, { quantity: current }, card, { skipRerender: true });
+          updateItem(itemId, { quantity: current }, { skipRerender: true });
         });
       });
 
       card.querySelector('[data-action="note"]').addEventListener("click", async () => {
         const note = prompt("Nota para este ítem:");
         if (note === null) return;
-        updateItem(itemId, { note }, card);
+        updateItem(itemId, { note });
       });
+
+      card.querySelector('[data-action="toggle-history"]').addEventListener("click", () => toggleHistory(itemId, card));
 
       const photoInput = card.querySelector("[data-photo-input]");
       card.querySelector('[data-action="photo"]').addEventListener("click", () => photoInput.click());
@@ -169,14 +304,46 @@
     });
   }
 
-  async function updateItem(itemId, values, card, opts = {}) {
+  async function logObservation(itemId, body) {
+    await supabase.from("project_observations").insert({
+      project_id: projectId, item_id: itemId, body, created_by: currentProfile.id,
+    });
+  }
+
+  async function toggleHistory(itemId, card) {
+    const box = card.querySelector("[data-history]");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+
+    box.style.display = "block";
+    box.innerHTML = "Cargando…";
+
+    const { data: obs, error } = await supabase
+      .from("project_observations")
+      .select("body, created_at, profiles(full_name)")
+      .eq("item_id", itemId)
+      .order("created_at", { ascending: true });
+
+    if (error || !obs || obs.length === 0) {
+      box.innerHTML = "<em>Sin historial todavía.</em>";
+      return;
+    }
+
+    box.innerHTML = obs.map(o => `
+      <div class="h-entry">
+        ${escapeHtml(o.body)}<br>
+        <span style="color:var(--ink-soft)">${o.profiles?.full_name || "—"} · ${new Date(o.created_at).toLocaleString("es-CO")}</span>
+      </div>
+    `).join("");
+  }
+
+  async function updateItem(itemId, values, opts = {}) {
     const { error } = await supabase.from("project_items").update(values).eq("id", itemId);
     if (error) {
       alert("No se pudo guardar el cambio (revisa tu conexión): " + error.message);
       return;
     }
     if (!opts.skipRerender) {
-      await loadSections(); // re-render simple y confiable
+      await loadSections();
       await recomputeProgress();
     } else {
       await recomputeProgress();
@@ -189,9 +356,8 @@
     const { error: upErr } = await supabase.storage.from("evidencias").upload(path, file);
     if (upErr) { alert("No se pudo subir la foto: " + upErr.message); return; }
 
-    const { data: { user } } = await supabase.auth.getUser();
     await supabase.from("project_attachments").insert({
-      project_id: projectId, item_id: itemId, storage_path: path, uploaded_by: user.id,
+      project_id: projectId, item_id: itemId, storage_path: path, uploaded_by: currentProfile.id,
     });
     showToast("Foto guardada");
   }
@@ -202,7 +368,7 @@
       .select("status, project_sections!inner(project_id)")
       .eq("project_sections.project_id", projectId);
     if (!items || items.length === 0) return;
-    const done = items.filter(i => i.status === "completado" || i.status === "no_aplica").length;
+    const done = items.filter(i => i.status === "completado").length;
     const pct = Math.round((done / items.length) * 100);
     await supabase.from("projects").update({ progress_pct: pct }).eq("id", projectId);
   }

@@ -28,8 +28,8 @@
 <button id="new-project-fab" class="fab-new" title="Nueva obra" style="display:none">+</button>
 
 <script type="module">
-  import { supabase, requireSession, getCurrentProfile, signOut } from "supabase.js";
-  import { statusLabel } from "format.js";
+  import { supabase, requireSession, getCurrentProfile, signOut } from "./supabase.js";
+  import { statusLabel } from "./format.js";
 
   const listEl = document.getElementById("list-container");
   const rolePillEl = document.getElementById("role-pill");

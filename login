@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Ingresar — HD Cocinas Operaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  body { display: flex; align-items: center; min-height: 100vh; }
+  .login-box { max-width: 400px; margin: 0 auto; width: 100%; padding: 24px; }
+  .login-box h1 { font-size: 26px; margin-bottom: 4px; }
+  .login-box p.sub { color: var(--ink-soft); margin-bottom: 28px; }
+  #error-msg { color: var(--correccion-ink); font-size: 14px; margin-top: 10px; display: none; }
+</style>
+</head>
+<body>
+<div class="login-box">
+  <h1>HD Cocinas</h1>
+  <p class="sub">Gestión de obras — ingresa con tu cuenta</p>
+
+  <div class="field">
+    <label for="email">Correo</label>
+    <input id="email" type="email" autocomplete="username" placeholder="tu@correo.com">
+  </div>
+  <div class="field">
+    <label for="password">Contraseña</label>
+    <input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
+  </div>
+  <div style="padding:0 16px">
+    <button id="submit-btn" class="btn btn-primary">Ingresar</button>
+  </div>
+  <p id="error-msg"></p>
+</div>
+
+<script type="module">
+  import { supabase, clearProfileCache } from "supabase.js";
+
+  const emailEl = document.getElementById("email");
+  const passEl = document.getElementById("password");
+  const btnEl = document.getElementById("submit-btn");
+  const errEl = document.getElementById("error-msg");
+
+  // Si ya hay sesión activa, ir directo a la lista de obras.
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session) window.location.href = "obras.html";
+  });
+
+  async function login() {
+    errEl.style.display = "none";
+    btnEl.disabled = true;
+    btnEl.textContent = "Ingresando…";
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailEl.value.trim(),
+      password: passEl.value,
+    });
+
+    if (error) {
+      errEl.textContent = "Correo o contraseña incorrectos.";
+      errEl.style.display = "block";
+      btnEl.disabled = false;
+      btnEl.textContent = "Ingresar";
+      return;
+    }
+
+    clearProfileCache();
+    window.location.href = "obras.html";
+  }
+
+  btnEl.addEventListener("click", login);
+  passEl.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+</script>
+</body>
+</html>

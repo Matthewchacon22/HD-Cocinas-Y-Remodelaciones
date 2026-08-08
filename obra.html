@@ -22,8 +22,8 @@
 </div>
 
 <script type="module">
-  import { supabase, requireSession, getCurrentProfile } from "supabase.js";
-  import { statusLabel, itemStatusLabel, escapeHtml } from "format.js";
+  import { supabase, requireSession, getCurrentProfile } from "./supabase.js";
+  import { statusLabel, itemStatusLabel, escapeHtml } from "./format.js";
 
   const params = new URLSearchParams(window.location.search);
   const projectId = params.get("id");

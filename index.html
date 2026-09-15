@@ -399,6 +399,18 @@ section{position:relative}
 #cfgRoot #rot-joy.dragging #rot-joy-knob{transition:none}
 #cfgRoot #wiz-peek-fab,#cfgRoot #wiz-back-fab{display:none}
 @media(max-width:640px){
+/* ===== El "bisel" decorativo (borde dorado, padding, esquinas redondeadas,
+   sombra) está pensado para escritorio, donde enmarca el canvas grande como
+   una vitrina. En móvil solo restaba ancho y, peor: dejaba #cfgRoot con
+   apenas 82vh de alto mientras el panel de abajo (#sidebar) pedía 85vh —
+   3-10vh más de lo que su propia caja tenía disponible. Ese desajuste es lo
+   que se veía "atrapado"/cortado: el panel se recortaba contra el borde de
+   arriba y se montaba sobre el logo. Aquí quitamos el marco y le damos a
+   #cfgRoot alto real de pantalla completa, para que el panel (85vh) quepa
+   siempre con margen de sobra. */
+.cfg-shell{padding-left:0;padding-right:0}
+.cfg-bezel{padding:0;border:none;border-radius:0;box-shadow:none;background:none}
+#cfgRoot{height:100vh;height:100dvh;max-height:none;min-height:0}
 /* ===== Floating glass panel shell (Configurador) ===== */
 #cfgRoot #sidebar{
   top:auto;left:10px;right:10px;bottom:74px;width:auto;

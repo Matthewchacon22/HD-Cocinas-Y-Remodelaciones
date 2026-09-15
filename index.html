@@ -350,6 +350,28 @@ section{position:relative}
 #cfgRoot #lead-modal.show{display:flex}
 #cfgRoot .lead-modal-backdrop{position:absolute;inset:0;background:rgba(6,6,8,0.72);backdrop-filter:blur(4px)}
 #cfgRoot .lead-modal-card{position:relative;width:100%;max-width:380px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;background:#141416;border:0.5px solid rgba(201,168,76,0.35);border-radius:16px;padding:26px 24px 22px;box-shadow:0 24px 64px rgba(0,0,0,0.6);color:#fff}
+/* Entrada suave: antes el modal aparecía de golpe (display:none -> flex sin
+   transición). Estas animaciones corren solas en cuanto se agrega la clase
+   .show — mismo lenguaje visual que #empty-state (esFadeIn). */
+@keyframes leadModalBackdropIn{from{opacity:0}to{opacity:1}}
+@keyframes leadModalCardIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+#cfgRoot #lead-modal.show .lead-modal-backdrop{animation:leadModalBackdropIn .22s ease}
+#cfgRoot #lead-modal.show .lead-modal-card{animation:leadModalCardIn .3s cubic-bezier(.22,1,.36,1)}
+@media(min-width:900px){
+  /* En escritorio hay de sobra espacio al lado del canvas 3D: una tarjeta
+     un poco más ancha se ve mejor proporcionada que el mismo ancho móvil. */
+  #cfgRoot .lead-modal-card{max-width:420px;padding:32px 30px 26px}
+}
+@media(max-width:640px){
+  /* El teclado del celular reduce el viewport visual desde abajo. Centrar
+     verticalmente puede dejar el campo que se está llenando tapado por el
+     teclado — anclamos arriba en su lugar, con scroll interno si hace falta. */
+  #cfgRoot #lead-modal{align-items:flex-start;padding-top:28px}
+  /* iOS Safari hace zoom automático al enfocar un input con font-size menor
+     a 16px, lo que se siente como un salto brusco — igualamos a 16px aquí
+     sin afectar la densidad visual del formulario en escritorio. */
+  #cfgRoot #lead-modal input,#cfgRoot #lead-modal select{font-size:16px}
+}
 #cfgRoot .lead-modal-scroll{overflow-y:auto;flex:1 1 auto;min-height:0;margin:0 -4px;padding:0 4px}
 #cfgRoot .lead-modal-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:13px;cursor:pointer;line-height:1}
 #cfgRoot .lead-modal-close:hover{background:rgba(255,255,255,0.16)}
@@ -622,20 +644,21 @@ section{position:relative}
 
 /* Banner "gate": se muestra ANTES de que el cliente llene el formulario,
    invitándolo a completar sus datos antes de perder tiempo diseñando. Se
-   oculta en cuanto leadCaptured pasa a true (ver syncLeadUI() en el JS). */
-#cfgRoot #wiz-lead-gate{display:flex;align-items:center;gap:12px;margin:14px 12px 2px;padding:14px 16px;
+   oculta en cuanto leadCaptured pasa a true (ver syncLeadUI() en el JS).
+   Siempre en columna: tanto el panel de escritorio (290px, ver #sidebar)
+   como la hoja de móvil son angostos — una fila con texto + botón no cabe
+   bien en ninguno de los dos, así que no depende del ancho de pantalla. */
+#cfgRoot #wiz-lead-gate{display:flex;flex-direction:column;gap:10px;margin:14px 12px 2px;padding:14px 16px;
   border-radius:14px;background:linear-gradient(135deg,rgba(201,168,76,0.16),rgba(201,168,76,0.06));
   border:1px solid rgba(201,168,76,0.4)}
-#cfgRoot #wiz-lead-gate-text{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+#cfgRoot #wiz-lead-gate-text{display:flex;flex-direction:column;gap:2px}
 #cfgRoot #wiz-lead-gate-text strong{font-size:13.5px;color:var(--hd-gold,#C9A84C);font-weight:700}
 #cfgRoot #wiz-lead-gate-text span{font-size:11.5px;line-height:1.4;color:rgba(255,255,255,0.6)}
-#cfgRoot #wiz-lead-gate-btn{flex-shrink:0;padding:10px 14px;border-radius:8px;border:none;
-  background:var(--hd-gold,#C9A84C);color:#0f0f0f;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+#cfgRoot #wiz-lead-gate-btn{width:100%;padding:10px 14px;border-radius:8px;border:none;
+  background:var(--hd-gold,#C9A84C);color:#0f0f0f;font-size:12px;font-weight:700;cursor:pointer;
+  transition:opacity 0.2s,transform 0.15s}
 #cfgRoot #wiz-lead-gate-btn:hover{opacity:.88}
-@media(max-width:640px){
-  #cfgRoot #wiz-lead-gate{flex-direction:column;align-items:stretch;text-align:center}
-  #cfgRoot #wiz-lead-gate-btn{width:100%}
-}
+#cfgRoot #wiz-lead-gate-btn:active{transform:scale(0.97)}
 @media(max-width:640px){
   #cfgRoot .wiz-row-head{min-height:64px;padding:16px 16px}
   #cfgRoot .wiz-row-num{width:36px;height:36px;font-size:15px}
@@ -1216,14 +1239,33 @@ section{position:relative}
   var cfgSection=document.getElementById('cfg-tool');
   if(!cfgSection) return;
   var gateShown=false;
+  var pending=null;
   var io=new IntersectionObserver(function(es){
     es.forEach(function(e){
-      if(e.isIntersecting && !gateShown && typeof leadCaptured!=='undefined' && !leadCaptured){
-        gateShown=true;
-        setTimeout(function(){
-          if(typeof abrirModalLead==='function') abrirModalLead();
-        }, 450);
+      if(gateShown || (typeof leadCaptured!=='undefined' && leadCaptured)){
         io.unobserve(e.target);
+        return;
+      }
+      if(e.isIntersecting){
+        // Si el cliente solo está pasando de largo (scroll rápido), no
+        // programamos otro intento encima del que ya está en curso.
+        if(pending) return;
+        pending=setTimeout(function(){
+          pending=null;
+          // Reconfirmamos que la sección sigue realmente visible: si el
+          // usuario ya se fue de ahí, no le aparecemos el formulario a
+          // destiempo, en medio de otra parte de la página.
+          var r=cfgSection.getBoundingClientRect();
+          var stillVisible=r.top<innerHeight*0.75 && r.bottom>innerHeight*0.25;
+          if(stillVisible && !gateShown && typeof abrirModalLead==='function'){
+            gateShown=true;
+            abrirModalLead();
+            io.unobserve(cfgSection);
+          }
+        }, 500);
+      } else if(pending){
+        clearTimeout(pending);
+        pending=null;
       }
     });
   },{threshold:.25});
@@ -2148,10 +2190,12 @@ function abrirModalLead(){
   document.getElementById('lead-barrio-otro').value='';
   m.classList.add('show');
   document.body.style.overflow='hidden';
+  // El delay se alinea con leadModalCardIn (.3s): así el teclado del celular
+  // no salta a mitad de la animación de entrada, que se sentía brusco.
   setTimeout(function(){
     var n=document.getElementById('lead-nombre');
     if(n) n.focus();
-  }, 50);
+  }, 320);
 }
 
 // Muestra/oculta el campo de texto libre cuando el barrio seleccionado es "Otro".
@@ -2172,6 +2216,10 @@ function cerrarModalLead(){
   if(!m) return;
   m.classList.remove('show');
   document.body.style.overflow='';
+  // Al cerrar el modal (con envío o cancelado), si estamos en móvil
+  // revelamos el panel de diseño — así el siguiente paso queda a la vista
+  // en vez de dejar al cliente frente al visor 3D con el tirador colapsado.
+  if(typeof window.mobileTab==='function') window.mobileTab('cfg');
 }
 
 // Handler del botón "Enviar y continuar por WhatsApp" dentro del modal.

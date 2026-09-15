@@ -1980,6 +1980,11 @@ const CRM_WEBHOOK_TIMEOUT_MS=6000;
 const HUBSPOT_PORTAL_ID='45859287';
 const HUBSPOT_FORM_GUID='70e9ddee-54fd-4d84-adc7-479fcc1a2603';
 const HUBSPOT_FIELD_DETALLE='cotizacion_detalle'; // nombre interno del campo personalizado en HubSpot
+// Propiedad donde guardamos el link de Cloudinary a la captura del diseño
+// (ya no el base64 gigante de antes — ver subirCapturaACloudinary()).
+// Si esta propiedad ya no existe en tu HubSpot, créala como texto de una
+// línea (Single-line text) y pon aquí su "internal name".
+const HUBSPOT_FIELD_CAPTURA='captura_del_diseno';
 
 // Tiempo máximo (ms) que esperamos a HubSpot antes de darlo por fallido.
 // Se amplió de 8s a 18s cuando el envío incluía la captura del diseño en
@@ -1988,14 +1993,75 @@ const HUBSPOT_FIELD_DETALLE='cotizacion_detalle'; // nombre interno del campo pe
 // tiempo de espera corto original.
 const HUBSPOT_TIMEOUT_MS=8000;
 
-// NOTA: antes se mandaba una foto del diseño 3D (en base64) como propiedad
-// de contacto en HubSpot. Se quitó: el formulario ahora se llena ANTES de
-// diseñar, así que en el momento del envío casi nunca hay un diseño real
-// que capturar — y de paso, ese texto base64 tan largo se veía como un
-// link gigantesco tanto en el correo de notificación de HubSpot como en
-// la ficha del contacto. Si más adelante se quiere retomar esto bien hecho
-// (subiendo la imagen a un hosting como Cloudinary y mandando solo el link
-// corto a HubSpot), avisa y se conecta.
+// ---------------------------------------------------------------------
+// CLOUDINARY — subida de la captura del diseño (imagen real, no base64)
+// ---------------------------------------------------------------------
+// Antes se mandaba la foto del diseño como un texto base64 gigantesco
+// dentro de una propiedad de HubSpot — se veía como un link enorme tanto
+// en el correo de notificación como en la ficha del contacto. Ahora, si
+// el cliente diseñó algo, subimos esa imagen a Cloudinary (subida
+// "unsigned": no requiere ninguna clave secreta en el sitio, por eso es
+// segura de usar desde el navegador) y a HubSpot solo le llega el link
+// corto de la imagen ya subida.
+const CLOUDINARY_CLOUD_NAME='orx2ridu';
+const CLOUDINARY_UPLOAD_PRESET='hd-cocinas-diseños';
+const CLOUDINARY_TIMEOUT_MS=15000;
+
+// Lee directamente el canvas del configurador 3D con toDataURL — esto NO
+// abre ningún diálogo ni pide permiso al navegador (a diferencia de
+// compartir pantalla): es solo leer los píxeles que ya están dibujados
+// en el <canvas>. El renderer ya tiene preserveDrawingBuffer:true, así
+// que el buffer siempre conserva el último frame dibujado por el loop de
+// animación (animate()), listo para capturar en cualquier momento.
+function capturarDiseno(){
+  try{
+    if(typeof canvas==='undefined' || !canvas || !canvas.toDataURL) return '';
+    return canvas.toDataURL('image/jpeg', 0.72);
+  }catch(e){
+    // Ej: canvas "tainted" por alguna textura cross-origin. Fallamos en
+    // silencio — la captura es un plus, nunca debe bloquear el envío.
+    return '';
+  }
+}
+
+// Sube la captura (data URL en base64) a Cloudinary y devuelve
+// {ok:true, url:'https://...'} con el link corto de la imagen ya
+// alojada, o {ok:false, reason:'...'} si algo falla — nunca rechaza la
+// Promise, para que quien la llame no necesite try/catch.
+function subirCapturaACloudinary(dataUrl){
+  if(!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET){
+    return Promise.resolve({ok:false, reason:'Cloudinary no está configurado (falta CLOUDINARY_CLOUD_NAME / CLOUDINARY_UPLOAD_PRESET).'});
+  }
+  if(!dataUrl){
+    return Promise.resolve({ok:false, reason:'No hay ninguna captura del diseño para subir.'});
+  }
+  var controller=(typeof AbortController!=='undefined')?new AbortController():null;
+  var timer=controller?setTimeout(function(){ controller.abort(); }, CLOUDINARY_TIMEOUT_MS):null;
+  return fetch(dataUrl)
+    .then(function(r){ return r.blob(); })
+    .then(function(blob){
+      var fd=new FormData();
+      fd.append('file', blob, 'diseno.jpg');
+      fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      return fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY_CLOUD_NAME+'/image/upload', {
+        method:'POST',
+        body: fd,
+        signal: controller?controller.signal:undefined
+      });
+    })
+    .then(function(r){
+      if(timer) clearTimeout(timer);
+      if(!r.ok) return {ok:false, reason:'Cloudinary respondió con error '+r.status};
+      return r.json().then(function(json){
+        return (json && json.secure_url) ? {ok:true, url:json.secure_url} : {ok:false, reason:'Cloudinary no devolvió una URL.'};
+      });
+    })
+    .catch(function(err){
+      if(timer) clearTimeout(timer);
+      var motivo=(err&&err.name==='AbortError')?'Cloudinary tardó demasiado en responder.':((err&&err.message)||'No se pudo conectar con Cloudinary.');
+      return {ok:false, reason:motivo};
+    });
+}
 
 // Genera un ID de proyecto único y legible: HD-AAAAMMDD-XXXX. Útil como
 // referencia dentro del CRM (por ejemplo como nombre de negocio/deal o
@@ -2071,19 +2137,7 @@ function sendQuoteToCRM(data){
 // para que quien la llame decida qué hacer — en nuestro caso, abrir
 // WhatsApp solo si ok:true.
 // ---------------------------------------------------------------------
-// CAPTURA SILENCIOSA DEL DISEÑO
-// ---------------------------------------------------------------------
-// Lee directamente el canvas del configurador 3D con toDataURL — esto NO
-// abre ningún diálogo ni pide permiso al navegador (a diferencia de
-// compartir pantalla): es solo leer los píxeles que ya están dibujados
-// en el <canvas>. El renderer ya tiene preserveDrawingBuffer:true, así
-// que el buffer siempre conserva el último frame dibujado por el loop de
-// animación (animate()), listo para capturar en cualquier momento.
-//
-// Como el <canvas> es lo único que se lee, la imagen sale automáticamente
-// limpia: los botones, menús, joystick, topbar, etc. son elementos HTML
-// aparte, superpuestos por CSS — nunca forman parte del propio canvas.
-function registrarLeadHubSpot(nombre, correo, telefono, barrio, quoteData, medidas){
+function registrarLeadHubSpot(nombre, correo, telefono, barrio, quoteData, medidas, capturaUrl){
   if(!HUBSPOT_PORTAL_ID || !HUBSPOT_FORM_GUID){
     return Promise.resolve({ok:false, reason:'HubSpot no está configurado todavía (falta HUBSPOT_PORTAL_ID / HUBSPOT_FORM_GUID en el código).'});
   }
@@ -2097,6 +2151,7 @@ function registrarLeadHubSpot(nombre, correo, telefono, barrio, quoteData, medid
   ];
   if(correo){ fields.push({objectTypeId:'0-1', name:'email', value:correo}); }
   if(HUBSPOT_FIELD_DETALLE){ fields.push({objectTypeId:'0-1', name:HUBSPOT_FIELD_DETALLE, value:detalle}); }
+  if(HUBSPOT_FIELD_CAPTURA && capturaUrl){ fields.push({objectTypeId:'0-1', name:HUBSPOT_FIELD_CAPTURA, value:capturaUrl}); }
 
   var payload={
     fields: fields,
@@ -2174,8 +2229,13 @@ function reenviarDisenoActualizado(){
   var waURL='https://wa.me/'+WHATSAPP_NUMBER+'?text='+encodeURIComponent(buildWhatsAppMessage(barrio));
   sendQuoteToCRM(data);
   // Actualización de mejor esfuerzo: no bloqueamos la apertura de WhatsApp
-  // esperando la respuesta, porque el lead ya quedó registrado antes.
-  registrarLeadHubSpot(nombre, correo, telefono, barrio, data, medidas);
+  // ni esperando la subida a Cloudinary ni la respuesta de HubSpot —
+  // el lead ya quedó registrado antes, esto solo enriquece su registro.
+  var captura=capturarDiseno();
+  subirCapturaACloudinary(captura).then(function(resultadoImagen){
+    var capturaUrl=(resultadoImagen && resultadoImagen.ok) ? resultadoImagen.url : '';
+    registrarLeadHubSpot(nombre, correo, telefono, barrio, data, medidas, capturaUrl);
+  });
   mostrarToast('Actualizamos tu diseño. Abrimos WhatsApp para continuar.');
   window.location.href=waURL;
 }

@@ -1982,32 +1982,20 @@ const HUBSPOT_FORM_GUID='70e9ddee-54fd-4d84-adc7-479fcc1a2603';
 const HUBSPOT_FIELD_DETALLE='cotizacion_detalle'; // nombre interno del campo personalizado en HubSpot
 
 // Tiempo máximo (ms) que esperamos a HubSpot antes de darlo por fallido.
-// Se amplió de 8s a 18s: el envío ahora incluye la captura del diseño en
-// base64 (varios cientos de KB), que en una conexión móvil lenta puede
-// tardar más que un envío de solo texto — con 8s corríamos el riesgo de
-// marcar como "fallido" un envío que solo iba lento, bloqueando WhatsApp
-// sin necesidad.
-const HUBSPOT_TIMEOUT_MS=18000;
+// Se amplió de 8s a 18s cuando el envío incluía la captura del diseño en
+// base64 (varios cientos de KB). Ya no se manda esa imagen (ver nota más
+// abajo), así que el envío vuelve a ser solo texto — se restaura el
+// tiempo de espera corto original.
+const HUBSPOT_TIMEOUT_MS=8000;
 
-// Captura automática del diseño: la mandamos como TEXTO (una imagen JPEG
-// codificada en base64), no como archivo adjunto. Lo intentamos primero
-// con "subida de archivo" del formulario, pero la API pública de HubSpot
-// (la única segura de usar desde el navegador, sin token privado) no
-// soporta subir archivos de forma confiable — solo funciona bien con un
-// token privado, que nunca debe vivir en un sitio estático como este. La
-// propiedad de texto multilínea, en cambio, no tiene límite de caracteres
-// cuando se llena por un envío de formulario, así que cabe sin problema.
-//
-// Cómo activarlo:
-//   1. En HubSpot: Properties > Contact properties > Create property.
-//   2. Tipo de campo: Multi-line text. Label sugerido: "Captura del diseño".
-//   3. Agrega esa propiedad al mismo formulario que ya tienes.
-//   4. Copia aquí el "internal name" que te muestre HubSpot.
-// Para VER la imagen: abre el contacto en HubSpot, copia el valor
-// completo de esa propiedad (empieza con "data:image/jpeg;base64,...")
-// y pégalo en la barra de direcciones de cualquier navegador — se
-// muestra la imagen directamente, sin necesidad de nada más.
-const HUBSPOT_FIELD_CAPTURA='captura_del_diseno'; // nombre interno del campo personalizado en HubSpot
+// NOTA: antes se mandaba una foto del diseño 3D (en base64) como propiedad
+// de contacto en HubSpot. Se quitó: el formulario ahora se llena ANTES de
+// diseñar, así que en el momento del envío casi nunca hay un diseño real
+// que capturar — y de paso, ese texto base64 tan largo se veía como un
+// link gigantesco tanto en el correo de notificación de HubSpot como en
+// la ficha del contacto. Si más adelante se quiere retomar esto bien hecho
+// (subiendo la imagen a un hosting como Cloudinary y mandando solo el link
+// corto a HubSpot), avisa y se conecta.
 
 // Genera un ID de proyecto único y legible: HD-AAAAMMDD-XXXX. Útil como
 // referencia dentro del CRM (por ejemplo como nombre de negocio/deal o
@@ -2095,18 +2083,7 @@ function sendQuoteToCRM(data){
 // Como el <canvas> es lo único que se lee, la imagen sale automáticamente
 // limpia: los botones, menús, joystick, topbar, etc. son elementos HTML
 // aparte, superpuestos por CSS — nunca forman parte del propio canvas.
-function capturarDiseno(){
-  try{
-    if(typeof canvas==='undefined' || !canvas || !canvas.toDataURL) return '';
-    return canvas.toDataURL('image/jpeg', 0.72);
-  }catch(e){
-    // Ej: canvas "tainted" por alguna textura cross-origin. Fallamos en
-    // silencio — la captura es un plus, nunca debe bloquear el envío.
-    return '';
-  }
-}
-
-function registrarLeadHubSpot(nombre, correo, telefono, barrio, captura, quoteData, medidas){
+function registrarLeadHubSpot(nombre, correo, telefono, barrio, quoteData, medidas){
   if(!HUBSPOT_PORTAL_ID || !HUBSPOT_FORM_GUID){
     return Promise.resolve({ok:false, reason:'HubSpot no está configurado todavía (falta HUBSPOT_PORTAL_ID / HUBSPOT_FORM_GUID en el código).'});
   }
@@ -2120,7 +2097,6 @@ function registrarLeadHubSpot(nombre, correo, telefono, barrio, captura, quoteDa
   ];
   if(correo){ fields.push({objectTypeId:'0-1', name:'email', value:correo}); }
   if(HUBSPOT_FIELD_DETALLE){ fields.push({objectTypeId:'0-1', name:HUBSPOT_FIELD_DETALLE, value:detalle}); }
-  if(HUBSPOT_FIELD_CAPTURA && captura){ fields.push({objectTypeId:'0-1', name:HUBSPOT_FIELD_CAPTURA, value:captura}); }
 
   var payload={
     fields: fields,
@@ -2195,12 +2171,11 @@ function reenviarDisenoActualizado(){
   var medidas=localStorage.getItem('hd_lead_medidas')||'';
   var projectId=generateProjectId();
   var data=getQuoteData(projectId);
-  var captura=capturarDiseno();
   var waURL='https://wa.me/'+WHATSAPP_NUMBER+'?text='+encodeURIComponent(buildWhatsAppMessage(barrio));
   sendQuoteToCRM(data);
   // Actualización de mejor esfuerzo: no bloqueamos la apertura de WhatsApp
   // esperando la respuesta, porque el lead ya quedó registrado antes.
-  registrarLeadHubSpot(nombre, correo, telefono, barrio, captura, data, medidas);
+  registrarLeadHubSpot(nombre, correo, telefono, barrio, data, medidas);
   mostrarToast('Actualizamos tu diseño. Abrimos WhatsApp para continuar.');
   window.location.href=waURL;
 }
@@ -2291,7 +2266,6 @@ function enviarLeadYAbrirWhatsApp(){
 
   var projectId=generateProjectId();
   var data=getQuoteData(projectId);
-  var captura=capturarDiseno();
   var waURL='https://wa.me/'+WHATSAPP_NUMBER+'?text='+encodeURIComponent(buildWhatsAppMessage(barrio));
 
   // El webhook genérico (si está configurado) sigue enviándose en paralelo
@@ -2299,7 +2273,7 @@ function enviarLeadYAbrirWhatsApp(){
   // HubSpot para quien también use Zapier/Make/n8n.
   sendQuoteToCRM(data);
 
-  registrarLeadHubSpot(nombre, correo, telefono, barrio, captura, data, medidas).then(function(resultado){
+  registrarLeadHubSpot(nombre, correo, telefono, barrio, data, medidas).then(function(resultado){
     btn.disabled=false;
     btn.textContent='Enviar y continuar por WhatsApp ↗';
 

@@ -349,18 +349,27 @@ section{position:relative}
 #cfgRoot #lead-modal{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:20px}
 #cfgRoot #lead-modal.show{display:flex}
 #cfgRoot .lead-modal-backdrop{position:absolute;inset:0;background:rgba(6,6,8,0.72);backdrop-filter:blur(4px)}
-#cfgRoot .lead-modal-card{position:relative;width:100%;max-width:380px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;background:#141416;border:0.5px solid rgba(201,168,76,0.35);border-radius:16px;padding:26px 24px 22px;box-shadow:0 24px 64px rgba(0,0,0,0.6);color:#fff}
-/* Entrada suave: antes el modal aparecía de golpe (display:none -> flex sin
-   transición). Estas animaciones corren solas en cuanto se agrega la clase
-   .show — mismo lenguaje visual que #empty-state (esFadeIn). */
+#cfgRoot .lead-modal-card{position:relative;width:100%;max-width:380px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;
+  background:#141416;border:0.5px solid rgba(201,168,76,0.35);border-radius:18px;padding:28px 26px 22px;
+  box-shadow:0 24px 64px rgba(0,0,0,0.6),0 0 0 1px rgba(0,0,0,0.4);color:#fff;overflow:hidden}
+/* Franja de marca: un detalle simple que da un aire más "producto terminado"
+   que un formulario genérico — el mismo dorado de la identidad, arriba del
+   todo, recortado a las esquinas redondeadas de la tarjeta gracias a
+   overflow:hidden en .lead-modal-card. */
+#cfgRoot .lead-modal-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--hd-gold,#C9A84C),#e3c878,var(--hd-gold,#C9A84C))}
+#cfgRoot .lead-modal-eyebrow{display:block;font-size:10.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--hd-gold,#C9A84C);margin:2px 0 8px}
 @keyframes leadModalBackdropIn{from{opacity:0}to{opacity:1}}
 @keyframes leadModalCardIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
 #cfgRoot #lead-modal.show .lead-modal-backdrop{animation:leadModalBackdropIn .22s ease}
 #cfgRoot #lead-modal.show .lead-modal-card{animation:leadModalCardIn .3s cubic-bezier(.22,1,.36,1)}
 @media(min-width:900px){
   /* En escritorio hay de sobra espacio al lado del canvas 3D: una tarjeta
-     un poco más ancha se ve mejor proporcionada que el mismo ancho móvil. */
-  #cfgRoot .lead-modal-card{max-width:420px;padding:32px 30px 26px}
+     más ancha con dos columnas se ve como un formulario real, no una lista
+     larga de campos apilados. */
+  #cfgRoot .lead-modal-card{max-width:480px;padding:34px 32px 26px}
+  #cfgRoot .lead-modal-grid{grid-template-columns:1fr 1fr}
 }
 @media(max-width:640px){
   /* El teclado del celular reduce el viewport visual desde abajo. Centrar
@@ -373,19 +382,27 @@ section{position:relative}
   #cfgRoot #lead-modal input,#cfgRoot #lead-modal select{font-size:16px}
 }
 #cfgRoot .lead-modal-scroll{overflow-y:auto;flex:1 1 auto;min-height:0;margin:0 -4px;padding:0 4px}
-#cfgRoot #lead-modal-title{font-size:18px;font-weight:700;margin:0 0 6px;color:var(--hd-gold,#C9A84C)}
-#cfgRoot .lead-modal-sub{font-size:12.5px;line-height:1.5;color:rgba(255,255,255,0.6);margin:0 0 18px}
-#cfgRoot #lead-modal label{display:block;font-size:11.5px;letter-spacing:0.03em;color:rgba(255,255,255,0.55);margin:0 0 6px}
+#cfgRoot #lead-modal-title{font-size:19px;font-weight:700;margin:0 0 6px;color:#fff;letter-spacing:-0.01em}
+#cfgRoot .lead-modal-sub{font-size:12.5px;line-height:1.5;color:rgba(255,255,255,0.6);margin:0 0 20px}
+/* Cuadrícula de campos: una sola columna por defecto (móvil), dos columnas
+   desde 900px (ver media query arriba). Un campo puede pedir el ancho
+   completo con .lead-field-full (usado por "Medidas", que es más largo). */
+#cfgRoot .lead-modal-grid{display:grid;grid-template-columns:1fr;gap:0 14px}
+#cfgRoot .lead-field{min-width:0}
+#cfgRoot .lead-field-full{grid-column:1 / -1}
+#cfgRoot #lead-modal label{display:block;font-size:11px;font-weight:600;letter-spacing:0.03em;color:rgba(255,255,255,0.55);margin:0 0 6px}
 #cfgRoot .lead-modal-opt{color:rgba(255,255,255,0.35);font-weight:400}
-#cfgRoot #lead-modal input{width:100%;box-sizing:border-box;padding:11px 12px;margin-bottom:14px;border-radius:8px;border:0.5px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);color:#fff;font-size:13.5px;font-family:inherit}
-#cfgRoot #lead-modal select{width:100%;box-sizing:border-box;padding:11px 36px 11px 12px;margin-bottom:14px;border-radius:8px;border:0.5px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0l5 6 5-6z" fill="%23C9A84C"/></svg>') no-repeat right 12px center;-webkit-appearance:none;-moz-appearance:none;appearance:none;color:#fff;font-size:13.5px;font-family:inherit;cursor:pointer}
+#cfgRoot #lead-modal input{width:100%;box-sizing:border-box;padding:12px 13px;margin-bottom:14px;border-radius:9px;border:0.5px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.045);color:#fff;font-size:13.5px;font-family:inherit;transition:border-color .15s,background .15s}
+#cfgRoot #lead-modal select{width:100%;box-sizing:border-box;padding:12px 36px 12px 13px;margin-bottom:14px;border-radius:9px;border:0.5px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.045) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0l5 6 5-6z" fill="%23C9A84C"/></svg>') no-repeat right 13px center;-webkit-appearance:none;-moz-appearance:none;appearance:none;color:#fff;font-size:13.5px;font-family:inherit;cursor:pointer;transition:border-color .15s,background .15s}
 #cfgRoot #lead-modal select:invalid{color:rgba(255,255,255,0.45)}
 #cfgRoot #lead-modal select option{background:#141416;color:#fff}
-#cfgRoot #lead-modal input:focus,#cfgRoot #lead-modal select:focus{outline:none;border-color:var(--hd-gold,#C9A84C)}
-#cfgRoot .lead-modal-error{display:none;font-size:12px;line-height:1.5;color:#ff8a8a;background:rgba(255,90,90,0.1);border:0.5px solid rgba(255,90,90,0.3);border-radius:8px;padding:9px 11px;margin-bottom:14px}
-#cfgRoot .lead-modal-submit{display:block;width:100%;flex-shrink:0;margin-top:16px;padding:13px;background:var(--hd-gold,#C9A84C);border:none;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:0.03em;color:#0f0f0f;cursor:pointer;transition:opacity 0.2s}
-#cfgRoot .lead-modal-submit:hover{opacity:0.88}
-#cfgRoot .lead-modal-submit:disabled{opacity:0.6;cursor:default}
+#cfgRoot #lead-modal input:focus,#cfgRoot #lead-modal select:focus{outline:none;border-color:var(--hd-gold,#C9A84C);background:rgba(201,168,76,0.06)}
+#cfgRoot .lead-modal-error{display:none;font-size:12px;line-height:1.5;color:#ff8a8a;background:rgba(255,90,90,0.1);border:0.5px solid rgba(255,90,90,0.3);border-radius:8px;padding:9px 11px;margin-bottom:6px}
+#cfgRoot .lead-modal-submit{display:block;width:100%;flex-shrink:0;margin-top:16px;padding:14px;background:linear-gradient(135deg,var(--hd-gold,#C9A84C),#e0bd6a);border:none;border-radius:10px;font-size:13.5px;font-weight:700;letter-spacing:0.03em;color:#0f0f0f;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:0 10px 26px -10px rgba(201,168,76,0.6)}
+#cfgRoot .lead-modal-submit:hover{transform:translateY(-1px);box-shadow:0 14px 30px -10px rgba(201,168,76,0.7)}
+#cfgRoot .lead-modal-submit:active{transform:translateY(0)}
+#cfgRoot .lead-modal-submit:disabled{opacity:0.6;cursor:default;transform:none;box-shadow:none}
+#cfgRoot .lead-modal-trust{flex-shrink:0;margin:10px 0 0;text-align:center;font-size:10.5px;color:rgba(255,255,255,0.4)}
 #cfgRoot #cta:hover{transform:translateY(-1px);box-shadow:0 14px 32px -8px rgba(201,168,76,0.7)}#cfgRoot #view-btns{display:flex;gap:6px}#cfgRoot .vbtn{flex:1;padding:7px 4px;border-radius:6px;border:0.5px solid rgba(255,255,255,0.12);background:transparent;color:rgba(255,255,255,0.58);font-size:11px;font-weight:500;cursor:pointer;transition:all 0.2s;text-align:center}#cfgRoot .vbtn.active{background:rgba(201,168,76,0.12);border-color:rgba(201,168,76,0.4);color:var(--hd-gold);font-weight:600}#cfgRoot #hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:14;font-size:11.5px;font-weight:500;color:rgba(255,255,255,0.55);pointer-events:none;white-space:nowrap;background:rgba(8,8,11,0.5);padding:6px 14px;border-radius:20px;backdrop-filter:blur(6px)}#cfgRoot #empty-state{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;padding:24px;opacity:1;transition:opacity .55s cubic-bezier(.22,1,.36,1)}#cfgRoot #empty-state.es-hidden{opacity:0}#cfgRoot #empty-state-inner{text-align:center;max-width:360px;padding:38px 36px 34px;background:linear-gradient(165deg,rgba(24,24,28,0.58),rgba(12,12,15,0.42));backdrop-filter:blur(26px) saturate(160%);-webkit-backdrop-filter:blur(26px) saturate(160%);border:1px solid rgba(255,255,255,0.13);border-radius:22px;box-shadow:0 34px 90px -24px rgba(0,0,0,0.65),0 2px 0 rgba(255,255,255,0.06) inset;animation:esFadeIn 1s cubic-bezier(.22,1,.36,1)}#cfgRoot .es-icon{width:34px;height:34px;color:var(--hd-gold);opacity:0.85;margin:0 auto 18px}#cfgRoot .es-eyebrow{display:block;font-family:var(--font-sans);font-size:10.5px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:var(--hd-gold);margin-bottom:14px}#cfgRoot .es-title{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:26px;line-height:1.25;letter-spacing:0.002em;color:#f7f5f1;margin:0 0 12px}#cfgRoot .es-title i{font-style:italic;font-weight:300;color:var(--hd-gold)}#cfgRoot .es-copy{font-family:var(--font-sans);font-size:13.5px;line-height:1.6;font-weight:400;color:rgba(255,255,255,0.58);max-width:270px;margin:0 auto}@keyframes esFadeIn{from{opacity:0;transform:translateY(10px) scale(0.98)}to{opacity:1;transform:none}}
 #cfgRoot #zoom-ctl{position:absolute;left:20px;bottom:110px;z-index:14;display:flex;flex-direction:column;gap:8px}
 #cfgRoot .zoom-btn{width:42px;height:42px;border-radius:50%;background:rgba(16,16,20,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:0.5px solid rgba(255,255,255,0.16);color:var(--hd-gold);font-size:20px;font-weight:600;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.35);transition:background 0.15s,transform 0.1s;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:none}
@@ -659,18 +676,19 @@ section{position:relative}
   #cfgRoot .wiz-row-cta .wiz-row-status{font-size:14.5px}
 }
 
-/* Banner "gate": invita a completar los datos antes de diseñar. Reusa el
-   MISMO lenguaje visual que las filas "Ver diseño" / "Solicitar cotización"
-   (medallón circular + título + chevron, tarjeta dorada clicable) en vez de
-   una caja genérica aparte — mezclada con esas filas se veía como un
-   parche ajeno ("mocho"). El formulario es OBLIGATORIO: esta tarjeta no
-   tiene forma de cerrarse, solo se oculta cuando leadCaptured pasa a true
-   (ver syncLeadUI() en el JS). Vive dentro de #wiz-sticky-top, nunca lo
-   tapa la barra de progreso. */
+/* Banner de invitación: mismo lenguaje visual que "Ver diseño" /
+   "Solicitar cotización" (medallón + título + chevron, tarjeta dorada
+   clicable), para que se sienta parte del mismo diseño en vez de un
+   parche aparte. Ya NO bloquea nada por sí sola — el cliente puede ver
+   todas las preguntas normalmente, sin atenuar; el formulario aparece en
+   cuanto intenta tocar cualquiera de ellas (ver el intercept de clics en
+   el JS, más abajo de abrirModalLead()). */
 #cfgRoot #wiz-lead-gate{position:relative;display:flex;align-items:center;gap:14px;cursor:pointer;
   margin:10px 12px 0;padding:14px 16px;
   border-radius:16px;background:linear-gradient(135deg,var(--hd-gold),#e0bd6a);
-  box-shadow:0 10px 26px -10px rgba(201,168,76,0.55)}
+  box-shadow:0 10px 26px -10px rgba(201,168,76,0.55);
+  transition:filter .15s,transform .15s}
+#cfgRoot #wiz-lead-gate:hover{filter:brightness(1.05)}
 #cfgRoot #wiz-lead-gate-badge{width:38px;height:38px;flex:0 0 auto;border-radius:50%;
   display:flex;align-items:center;justify-content:center;font-size:17px;
   background:#15120a;color:var(--hd-gold)}
@@ -679,13 +697,6 @@ section{position:relative}
 #cfgRoot #wiz-lead-gate-text span{font-size:12px;line-height:1.3;color:rgba(21,18,10,0.7);font-weight:600}
 #cfgRoot #wiz-lead-gate-chev{width:20px;height:20px;flex:0 0 auto;color:rgba(21,18,10,0.55)}
 #cfgRoot #wiz-lead-gate:active{transform:scale(0.99)}
-/* Preguntas del diseño BLOQUEADAS hasta llenar el formulario: se aplica la
-   clase .pre-lead a #wiz-accordion (ver syncLeadUI()) mientras leadCaptured
-   sea false. pointer-events:none las hace no-interactivas de verdad, no
-   solo visualmente — no basta con ocultar el banner, cualquier fila debía
-   quedar inutilizable hasta completar el dato obligatorio. */
-#cfgRoot.pre-lead #wiz-accordion .wiz-row{pointer-events:none;opacity:.4;filter:grayscale(.4)}
-#cfgRoot.pre-lead #wiz-peek-fab{pointer-events:none;opacity:.35;filter:grayscale(.4)}
 @media(max-width:640px){
   #cfgRoot .wiz-row-head{min-height:64px;padding:16px 16px}
   #cfgRoot .wiz-row-num{width:36px;height:36px;font-size:15px}
@@ -888,10 +899,10 @@ section{position:relative}
     <div id="wiz-accordion">
     <div id="wiz-sticky-top">
       <div id="wiz-lead-gate" role="button" tabindex="0" onclick="abrirModalLead()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirModalLead();}">
-        <span id="wiz-lead-gate-badge">✋</span>
+        <span id="wiz-lead-gate-badge">🎨</span>
         <div id="wiz-lead-gate-text">
-          <strong>Completar mis datos</strong>
-          <span>Toma menos de 1 minuto</span>
+          <strong>Empieza a diseñar tu cocina</strong>
+          <span>Solo pedimos tus datos · menos de 1 minuto</span>
         </div>
         <svg id="wiz-lead-gate-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
@@ -1139,43 +1150,57 @@ section{position:relative}
   <div class="lead-modal-backdrop"></div>
   <div class="lead-modal-card">
     <div class="lead-modal-scroll">
+      <span class="lead-modal-eyebrow">Antes de diseñar</span>
       <h3 id="lead-modal-title">Cuéntanos de tu proyecto</h3>
-      <p class="lead-modal-sub">Déjanos tus datos y te contactamos por WhatsApp. Después, si quieres, diseña tu cocina en 3D — es opcional.</p>
-      <label for="lead-nombre">Nombre</label>
-      <input type="text" id="lead-nombre" autocomplete="name" placeholder="Tu nombre" onkeydown="if(event.key==='Enter')enviarLeadYAbrirWhatsApp()">
-      <label for="lead-telefono">Teléfono / WhatsApp</label>
-      <input type="tel" id="lead-telefono" autocomplete="tel" inputmode="numeric" maxlength="10" placeholder="300 000 0000" onkeydown="if(event.key==='Enter')enviarLeadYAbrirWhatsApp()" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
-      <label for="lead-barrio">Barrio</label>
-      <select id="lead-barrio" required onchange="onCambioBarrio()">
-        <option value="" selected disabled>Seleccione su barrio</option>
-        <option>Alto Prado</option>
-        <option>Altos de Riomar</option>
-        <option>Buenavista</option>
-        <option>Castellana</option>
-        <option>Caujaral</option>
-        <option>Ciudad Jardín</option>
-        <option>El Golf</option>
-        <option>El Tabor</option>
-        <option>La Cumbre</option>
-        <option>Los Alpes</option>
-        <option>Los Nogales</option>
-        <option>Mallorquin</option>
-        <option>Paraíso</option>
-        <option>Rio Alto</option>
-        <option>Santa Monica</option>
-        <option>Villa Campestre</option>
-        <option>Villa Carolina</option>
-        <option>Villa Santos</option>
-        <option>Otro</option>
-      </select>
-      <input type="text" id="lead-barrio-otro" style="display:none" placeholder="Escribe el nombre de tu barrio" onkeydown="if(event.key==='Enter')enviarLeadYAbrirWhatsApp()">
-      <label for="lead-correo">Correo <span class="lead-modal-opt">(opcional)</span></label>
-      <input type="email" id="lead-correo" autocomplete="email" placeholder="tucorreo@ejemplo.com" onkeydown="if(event.key==='Enter')enviarLeadYAbrirWhatsApp()">
-      <label for="lead-medidas">Medidas de tu cocina <span class="lead-modal-opt">(opcional)</span></label>
-      <input type="text" id="lead-medidas" placeholder="Ej: 3.5m x 2.8m, o el área en m²" onkeydown="if(event.key==='Enter')enviarLeadYAbrirWhatsApp()">
+      <p class="lead-modal-sub">Déjanos tus datos y te contactamos por WhatsApp. Después, si quieres, diseña tu cocina en 3D.</p>
+      <div class="lead-modal-grid">
+        <div class="lead-field">
+          <label for="lead-nombre">Nombre</label>
+          <input type="text" id="lead-nombre" autocomplete="name" placeholder="Tu nombre" onkeydown="if(event.key==='Enter')enviarLeadYAbrirWhatsApp()">
+        </div>
+        <div class="lead-field">
+          <label for="lead-telefono">Teléfono / WhatsApp</label>
+          <input type="tel" id="lead-telefono" autocomplete="tel" inputmode="numeric" maxlength="10" placeholder="300 000 0000" onkeydown="if(event.key==='Enter')enviarLeadYAbrirWhatsApp()" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
+        </div>
+        <div class="lead-field">
+          <label for="lead-barrio">Barrio</label>
+          <select id="lead-barrio" required onchange="onCambioBarrio()">
+            <option value="" selected disabled>Seleccione su barrio</option>
+            <option>Alto Prado</option>
+            <option>Altos de Riomar</option>
+            <option>Buenavista</option>
+            <option>Castellana</option>
+            <option>Caujaral</option>
+            <option>Ciudad Jardín</option>
+            <option>El Golf</option>
+            <option>El Tabor</option>
+            <option>La Cumbre</option>
+            <option>Los Alpes</option>
+            <option>Los Nogales</option>
+            <option>Mallorquin</option>
+            <option>Paraíso</option>
+            <option>Rio Alto</option>
+            <option>Santa Monica</option>
+            <option>Villa Campestre</option>
+            <option>Villa Carolina</option>
+            <option>Villa Santos</option>
+            <option>Otro</option>
+          </select>
+          <input type="text" id="lead-barrio-otro" style="display:none" placeholder="Escribe el nombre de tu barrio" onkeydown="if(event.key==='Enter')enviarLeadYAbrirWhatsApp()">
+        </div>
+        <div class="lead-field">
+          <label for="lead-correo">Correo <span class="lead-modal-opt">(opcional)</span></label>
+          <input type="email" id="lead-correo" autocomplete="email" placeholder="tucorreo@ejemplo.com" onkeydown="if(event.key==='Enter')enviarLeadYAbrirWhatsApp()">
+        </div>
+        <div class="lead-field lead-field-full">
+          <label for="lead-medidas">Medidas de tu cocina <span class="lead-modal-opt">(opcional)</span></label>
+          <input type="text" id="lead-medidas" placeholder="Ej: 3.5m x 2.8m, o el área en m²" onkeydown="if(event.key==='Enter')enviarLeadYAbrirWhatsApp()">
+        </div>
+      </div>
       <div id="lead-error" class="lead-modal-error"></div>
     </div>
     <button type="button" id="lead-submit" class="lead-modal-submit" onclick="enviarLeadYAbrirWhatsApp()">Enviar y continuar por WhatsApp ↗</button>
+    <p class="lead-modal-trust">🔒 Tus datos solo se usan para contactarte sobre tu cocina.</p>
   </div>
 </div>
 
@@ -1257,48 +1282,27 @@ section{position:relative}
 // Galería: a diferencia de '.r' (que se revela una sola vez), las tarjetas '.gcard'
 // aparecen y desaparecen cada vez que entran o salen del viewport al hacer scroll.
 (function(){var gio=new IntersectionObserver(function(es){es.forEach(function(e){e.target.classList.toggle('in',e.isIntersecting);});},{threshold:.15});document.querySelectorAll('.gcard').forEach(function(el){gio.observe(el);});})();
-// GATE del lead: la primera vez que el cliente llega al configurador (por
-// cualquier camino — clic en "Diseñar", scroll manual, etc.) le mostramos
-// el formulario de contacto ANTES de dejarlo diseñar libremente. No lo
-// bloqueamos de forma dura (el modal se puede cerrar), pero sí lo ponemos
-// primero en su camino — que es justo lo que se pidió: enganchar al
-// cliente con el formulario antes de que invierta tiempo en el diseño 3D,
-// dejando el diseño como un paso opcional después.
+// GATE del lead: en vez de aparecer solo porque el cliente llegó
+// scrolleando hasta el configurador, el formulario ahora aparece justo
+// cuando de verdad intenta EMPEZAR a diseñar — el primer clic en
+// cualquier pregunta del acordeón (fila, chip, swatch, lo que sea dentro
+// de #wiz-accordion). Antes de eso puede ver la sección, leer, mirar el
+// banner, sin que nada le salte encima. Esto es justo lo pedido:
+// "cuando quiere comenzar a hacer el diseño le pide hacer el
+// formulario" — engancha en el momento de intención real, no antes.
+// Se intercepta en fase de CAPTURA (tercer argumento `true`): así el
+// evento nunca llega al botón real (wizToggleRow, etc.) mientras
+// leadCaptured sea false, sin tener que tocar cada handler individual.
 (function(){
-  var cfgSection=document.getElementById('cfg-tool');
-  if(!cfgSection) return;
-  var gateShown=false;
-  var pending=null;
-  var io=new IntersectionObserver(function(es){
-    es.forEach(function(e){
-      if(gateShown || (typeof leadCaptured!=='undefined' && leadCaptured)){
-        io.unobserve(e.target);
-        return;
-      }
-      if(e.isIntersecting){
-        // Si el cliente solo está pasando de largo (scroll rápido), no
-        // programamos otro intento encima del que ya está en curso.
-        if(pending) return;
-        pending=setTimeout(function(){
-          pending=null;
-          // Reconfirmamos que la sección sigue realmente visible: si el
-          // usuario ya se fue de ahí, no le aparecemos el formulario a
-          // destiempo, en medio de otra parte de la página.
-          var r=cfgSection.getBoundingClientRect();
-          var stillVisible=r.top<innerHeight*0.75 && r.bottom>innerHeight*0.25;
-          if(stillVisible && !gateShown && typeof abrirModalLead==='function'){
-            gateShown=true;
-            abrirModalLead();
-            io.unobserve(cfgSection);
-          }
-        }, 500);
-      } else if(pending){
-        clearTimeout(pending);
-        pending=null;
-      }
-    });
-  },{threshold:.25});
-  io.observe(cfgSection);
+  var acc=document.getElementById('wiz-accordion');
+  if(!acc) return;
+  acc.addEventListener('click', function(e){
+    if(typeof leadCaptured!=='undefined' && !leadCaptured){
+      e.preventDefault();
+      e.stopPropagation();
+      if(typeof abrirModalLead==='function') abrirModalLead();
+    }
+  }, true);
 })();
 (function(){
   var hm=document.getElementById('heroMedia');
@@ -1980,32 +1984,21 @@ const CRM_WEBHOOK_TIMEOUT_MS=6000;
 const HUBSPOT_PORTAL_ID='45859287';
 const HUBSPOT_FORM_GUID='70e9ddee-54fd-4d84-adc7-479fcc1a2603';
 const HUBSPOT_FIELD_DETALLE='cotizacion_detalle'; // nombre interno del campo personalizado en HubSpot
-// Propiedad donde guardamos el link de Cloudinary a la captura del diseño
-// (ya no el base64 gigante de antes — ver subirCapturaACloudinary()).
-// Si esta propiedad ya no existe en tu HubSpot, créala como texto de una
-// línea (Single-line text) y pon aquí su "internal name".
+// Captura del diseño: se manda como TEXTO (una imagen JPEG codificada en
+// base64) directo a esta propiedad de HubSpot — sin subirla a ningún
+// hosting externo, por decisión explícita (solo trabajar con HubSpot).
+// El valor sale largo; para VER la imagen, abre el contacto en HubSpot,
+// copia el valor completo de esta propiedad (empieza con
+// "data:image/jpeg;base64,...") y pégalo en la barra de direcciones de
+// cualquier navegador — se muestra la imagen directamente.
 const HUBSPOT_FIELD_CAPTURA='captura_del_diseno';
 
 // Tiempo máximo (ms) que esperamos a HubSpot antes de darlo por fallido.
-// Se amplió de 8s a 18s cuando el envío incluía la captura del diseño en
-// base64 (varios cientos de KB). Ya no se manda esa imagen (ver nota más
-// abajo), así que el envío vuelve a ser solo texto — se restaura el
-// tiempo de espera corto original.
-const HUBSPOT_TIMEOUT_MS=8000;
-
-// ---------------------------------------------------------------------
-// CLOUDINARY — subida de la captura del diseño (imagen real, no base64)
-// ---------------------------------------------------------------------
-// Antes se mandaba la foto del diseño como un texto base64 gigantesco
-// dentro de una propiedad de HubSpot — se veía como un link enorme tanto
-// en el correo de notificación como en la ficha del contacto. Ahora, si
-// el cliente diseñó algo, subimos esa imagen a Cloudinary (subida
-// "unsigned": no requiere ninguna clave secreta en el sitio, por eso es
-// segura de usar desde el navegador) y a HubSpot solo le llega el link
-// corto de la imagen ya subida.
-const CLOUDINARY_CLOUD_NAME='orx2ridu';
-const CLOUDINARY_UPLOAD_PRESET='hd-cocinas-diseños';
-const CLOUDINARY_TIMEOUT_MS=15000;
+// La captura del diseño en base64 pesa varios cientos de KB, así que en
+// una conexión móvil lenta el envío puede tardar más que uno de solo
+// texto — con un tiempo muy corto se corre el riesgo de marcar como
+// "fallido" un envío que solo iba lento.
+const HUBSPOT_TIMEOUT_MS=18000;
 
 // Lee directamente el canvas del configurador 3D con toDataURL — esto NO
 // abre ningún diálogo ni pide permiso al navegador (a diferencia de
@@ -2022,45 +2015,6 @@ function capturarDiseno(){
     // silencio — la captura es un plus, nunca debe bloquear el envío.
     return '';
   }
-}
-
-// Sube la captura (data URL en base64) a Cloudinary y devuelve
-// {ok:true, url:'https://...'} con el link corto de la imagen ya
-// alojada, o {ok:false, reason:'...'} si algo falla — nunca rechaza la
-// Promise, para que quien la llame no necesite try/catch.
-function subirCapturaACloudinary(dataUrl){
-  if(!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET){
-    return Promise.resolve({ok:false, reason:'Cloudinary no está configurado (falta CLOUDINARY_CLOUD_NAME / CLOUDINARY_UPLOAD_PRESET).'});
-  }
-  if(!dataUrl){
-    return Promise.resolve({ok:false, reason:'No hay ninguna captura del diseño para subir.'});
-  }
-  var controller=(typeof AbortController!=='undefined')?new AbortController():null;
-  var timer=controller?setTimeout(function(){ controller.abort(); }, CLOUDINARY_TIMEOUT_MS):null;
-  return fetch(dataUrl)
-    .then(function(r){ return r.blob(); })
-    .then(function(blob){
-      var fd=new FormData();
-      fd.append('file', blob, 'diseno.jpg');
-      fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-      return fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY_CLOUD_NAME+'/image/upload', {
-        method:'POST',
-        body: fd,
-        signal: controller?controller.signal:undefined
-      });
-    })
-    .then(function(r){
-      if(timer) clearTimeout(timer);
-      if(!r.ok) return {ok:false, reason:'Cloudinary respondió con error '+r.status};
-      return r.json().then(function(json){
-        return (json && json.secure_url) ? {ok:true, url:json.secure_url} : {ok:false, reason:'Cloudinary no devolvió una URL.'};
-      });
-    })
-    .catch(function(err){
-      if(timer) clearTimeout(timer);
-      var motivo=(err&&err.name==='AbortError')?'Cloudinary tardó demasiado en responder.':((err&&err.message)||'No se pudo conectar con Cloudinary.');
-      return {ok:false, reason:motivo};
-    });
 }
 
 // Genera un ID de proyecto único y legible: HD-AAAAMMDD-XXXX. Útil como
@@ -2137,7 +2091,7 @@ function sendQuoteToCRM(data){
 // para que quien la llame decida qué hacer — en nuestro caso, abrir
 // WhatsApp solo si ok:true.
 // ---------------------------------------------------------------------
-function registrarLeadHubSpot(nombre, correo, telefono, barrio, quoteData, medidas, capturaUrl){
+function registrarLeadHubSpot(nombre, correo, telefono, barrio, quoteData, medidas, captura){
   if(!HUBSPOT_PORTAL_ID || !HUBSPOT_FORM_GUID){
     return Promise.resolve({ok:false, reason:'HubSpot no está configurado todavía (falta HUBSPOT_PORTAL_ID / HUBSPOT_FORM_GUID en el código).'});
   }
@@ -2151,7 +2105,7 @@ function registrarLeadHubSpot(nombre, correo, telefono, barrio, quoteData, medid
   ];
   if(correo){ fields.push({objectTypeId:'0-1', name:'email', value:correo}); }
   if(HUBSPOT_FIELD_DETALLE){ fields.push({objectTypeId:'0-1', name:HUBSPOT_FIELD_DETALLE, value:detalle}); }
-  if(HUBSPOT_FIELD_CAPTURA && capturaUrl){ fields.push({objectTypeId:'0-1', name:HUBSPOT_FIELD_CAPTURA, value:capturaUrl}); }
+  if(HUBSPOT_FIELD_CAPTURA && captura){ fields.push({objectTypeId:'0-1', name:HUBSPOT_FIELD_CAPTURA, value:captura}); }
 
   var payload={
     fields: fields,
@@ -2192,16 +2146,14 @@ function registrarLeadHubSpot(nombre, correo, telefono, barrio, quoteData, medid
 // ---------------------------------------------------------------------
 var leadCaptured=(localStorage.getItem('hd_lead_captured')==='1');
 
-// Refleja leadCaptured en la interfaz: muestra/oculta el banner-gate,
-// BLOQUEA las preguntas del diseño y la burbuja "Ver diseño" mientras no
-// haya datos (formulario obligatorio — ver .pre-lead en el CSS), y cambia
-// el texto de "Solicitar cotización" cuando ya los tenemos. Se llama al
-// cargar la página y justo después de un envío exitoso del formulario.
+// Refleja leadCaptured en la interfaz: muestra/oculta el banner de
+// invitación y cambia el texto de "Solicitar cotización" cuando ya
+// tenemos los datos del cliente. El bloqueo real ya no vive aquí — lo
+// hace el intercept de clics sobre #wiz-accordion (ver más arriba). Se
+// llama al cargar la página y justo después de un envío exitoso.
 function syncLeadUI(){
   var gate=document.getElementById('wiz-lead-gate');
   if(gate) gate.style.display=leadCaptured?'none':'';
-  var root=document.getElementById('cfgRoot');
-  if(root) root.classList.toggle('pre-lead', !leadCaptured);
   var ctaTitle=document.querySelector('.wiz-row-cta .wiz-row-title');
   var ctaStatus=document.querySelector('.wiz-row-cta .wiz-row-status');
   if(ctaTitle && ctaStatus){
@@ -2226,16 +2178,12 @@ function reenviarDisenoActualizado(){
   var medidas=localStorage.getItem('hd_lead_medidas')||'';
   var projectId=generateProjectId();
   var data=getQuoteData(projectId);
+  var captura=capturarDiseno();
   var waURL='https://wa.me/'+WHATSAPP_NUMBER+'?text='+encodeURIComponent(buildWhatsAppMessage(barrio));
   sendQuoteToCRM(data);
   // Actualización de mejor esfuerzo: no bloqueamos la apertura de WhatsApp
-  // ni esperando la subida a Cloudinary ni la respuesta de HubSpot —
-  // el lead ya quedó registrado antes, esto solo enriquece su registro.
-  var captura=capturarDiseno();
-  subirCapturaACloudinary(captura).then(function(resultadoImagen){
-    var capturaUrl=(resultadoImagen && resultadoImagen.ok) ? resultadoImagen.url : '';
-    registrarLeadHubSpot(nombre, correo, telefono, barrio, data, medidas, capturaUrl);
-  });
+  // esperando la respuesta, porque el lead ya quedó registrado antes.
+  registrarLeadHubSpot(nombre, correo, telefono, barrio, data, medidas, captura);
   mostrarToast('Actualizamos tu diseño. Abrimos WhatsApp para continuar.');
   window.location.href=waURL;
 }

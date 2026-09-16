@@ -1162,7 +1162,7 @@ section{position:relative}
     <div class="lead-modal-scroll">
       <span class="lead-modal-eyebrow">Antes de diseñar</span>
       <h3 id="lead-modal-title">Cuéntanos de tu proyecto</h3>
-      <p class="lead-modal-sub">Déjanos tus datos y te contactamos por WhatsApp. Después, si quieres, diseña tu cocina en 3D.</p>
+      <p class="lead-modal-sub">Déjanos tus datos y luego diseña tu cocina en 3D. Al terminar, te contactamos por WhatsApp con tu diseño.</p>
       <div class="lead-modal-grid">
         <div class="lead-field">
           <label for="lead-nombre">Nombre</label>
@@ -1209,7 +1209,7 @@ section{position:relative}
       </div>
       <div id="lead-error" class="lead-modal-error"></div>
     </div>
-    <button type="button" id="lead-submit" class="lead-modal-submit" onclick="enviarLeadYAbrirWhatsApp()">Enviar y continuar por WhatsApp ↗</button>
+    <button type="button" id="lead-submit" class="lead-modal-submit" onclick="enviarLeadYAbrirWhatsApp()">Enviar y empezar a diseñar ↗</button>
     <p class="lead-modal-trust">🔒 Tus datos solo se usan para contactarte sobre tu cocina.</p>
   </div>
 </div>
@@ -2211,7 +2211,7 @@ function abrirModalLead(){
   document.getElementById('lead-error').style.display='none';
   document.getElementById('lead-error').textContent='';
   document.getElementById('lead-submit').disabled=false;
-  document.getElementById('lead-submit').textContent='Enviar y continuar por WhatsApp ↗';
+  document.getElementById('lead-submit').textContent='Enviar y empezar a diseñar ↗';
   document.getElementById('lead-barrio').value='';
   document.getElementById('lead-barrio-otro').style.display='none';
   document.getElementById('lead-barrio-otro').value='';
@@ -2249,14 +2249,15 @@ function cerrarModalLead(){
   if(typeof window.mobileTab==='function') window.mobileTab('cfg');
 }
 
-// Handler del botón "Enviar y continuar por WhatsApp" dentro del modal.
+// Handler del botón "Enviar y empezar a diseñar" dentro del modal.
 //
-// Abre una pestaña en blanco de inmediato (de forma síncrona, dentro del
-// mismo clic del usuario) para que el navegador nunca la bloquee como
-// pop-up. Si el registro en HubSpot tiene éxito, esa pestaña se redirige
-// a WhatsApp. Si falla, la pestaña se cierra de nuevo y NO se abre
-// WhatsApp — en su lugar se muestra el error dentro del propio modal para
-// que el cliente pueda revisar sus datos y volver a intentarlo.
+// Registra el lead en HubSpot y, si sale bien, desbloquea el diseño 3D —
+// a propósito NO abre WhatsApp aquí. WhatsApp se abre una sola vez, más
+// adelante, cuando el cliente termina de diseñar y toca "Solicitar
+// cotización" (reenviarDisenoActualizado()), junto con la captura del
+// diseño. Si el registro falla, se muestra el error dentro del propio
+// modal para que el cliente pueda revisar sus datos y volver a
+// intentarlo — el diseño se mantiene bloqueado hasta que se logre.
 function enviarLeadYAbrirWhatsApp(){
   var nombre=(document.getElementById('lead-nombre').value||'').trim();
   var telefono=(document.getElementById('lead-telefono').value||'').trim();
@@ -2286,7 +2287,6 @@ function enviarLeadYAbrirWhatsApp(){
 
   var projectId=generateProjectId();
   var data=getQuoteData(projectId);
-  var waURL='https://wa.me/'+WHATSAPP_NUMBER+'?text='+encodeURIComponent(buildWhatsAppMessage(barrio));
 
   // El webhook genérico (si está configurado) sigue enviándose en paralelo
   // y de mejor esfuerzo — no bloquea nada, es un canal aparte al de
@@ -2295,13 +2295,17 @@ function enviarLeadYAbrirWhatsApp(){
 
   registrarLeadHubSpot(nombre, correo, telefono, barrio, data, medidas).then(function(resultado){
     btn.disabled=false;
-    btn.textContent='Enviar y continuar por WhatsApp ↗';
+    btn.textContent='Enviar y empezar a diseñar ↗';
 
     if(resultado && resultado.ok){
       // Lead capturado: lo guardamos para no volver a pedir el formulario
-      // en esta sesión/navegador — de aquí en adelante el diseño 3D queda
-      // libre y opcional, y "Solicitar cotización" solo reenvía por
-      // WhatsApp (ver reenviarDisenoActualizado()).
+      // en esta sesión/navegador. A propósito NO abrimos WhatsApp aquí —
+      // eso pasaba dos veces (una al llenar el formulario y otra al
+      // terminar el diseño), lo cual se sentía redundante. Ahora WhatsApp
+      // se abre UNA sola vez, cuando el cliente termina su diseño y toca
+      // "Solicitar cotización" (ver reenviarDisenoActualizado()), que es
+      // también el momento en que se manda la captura del diseño a
+      // HubSpot.
       leadCaptured=true;
       try{
         localStorage.setItem('hd_lead_captured','1');
@@ -2312,16 +2316,10 @@ function enviarLeadYAbrirWhatsApp(){
         localStorage.setItem('hd_lead_medidas',medidas);
       }catch(e){}
       syncLeadUI();
-      // Navegamos la MISMA pestaña a WhatsApp — a propósito ya no abrimos
-      // una pestaña nueva en blanco de antemano (eso era lo que se veía
-      // como "about:blank" mientras esperábamos la respuesta de HubSpot).
-      // En celular, wa.me entrega directo a la app de WhatsApp sin dejar
-      // ninguna pestaña vacía de por medio.
       cerrarModalLead();
-      mostrarToast('Registramos tu solicitud. Abrimos WhatsApp para continuar la conversación. Si quieres, también puedes diseñar tu cocina en 3D — es opcional.');
-      window.location.href=waURL;
+      mostrarToast('¡Listo! Ya puedes diseñar tu cocina en 3D. Cuando termines, toca "Solicitar cotización" para enviarnos tu diseño por WhatsApp.');
     } else {
-      mostrarError('No pudimos registrar tu solicitud'+(resultado&&resultado.reason?(' ('+resultado.reason+')'):'')+'. Revisa tus datos e inténtalo de nuevo — WhatsApp no se abrió.');
+      mostrarError('No pudimos registrar tu solicitud'+(resultado&&resultado.reason?(' ('+resultado.reason+')'):'')+'. Revisa tus datos e inténtalo de nuevo.');
     }
   });
 }

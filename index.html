@@ -2213,17 +2213,23 @@ function reenviarDisenoActualizado(){
   var captura=capturarDiseno();
   var waURL='https://wa.me/'+WHATSAPP_NUMBER+'?text='+encodeURIComponent(buildWhatsAppMessage(barrio));
   sendQuoteToCRM(data);
-  // Actualización de mejor esfuerzo: no bloqueamos la apertura de WhatsApp
-  // esperando la respuesta, porque el lead ya quedó registrado antes. Si
-  // falla, lo dejamos en la consola — antes fallaba en silencio total, sin
-  // ninguna pista de qué pasó.
+  // IMPORTANTE: esperamos a que HubSpot responda (o falle/expire) ANTES de
+  // navegar a WhatsApp. Antes navegábamos de inmediato sin esperar —
+  // en celular, ese cambio de pantalla (pasar a la app de WhatsApp) podía
+  // cortar la petición a HubSpot a medio camino, así que el mensaje de
+  // WhatsApp sí salía pero la imagen nunca llegaba a guardarse. Vale la
+  // pequeña espera (unos segundos como mucho) a cambio de que el envío sí
+  // se complete de verdad.
+  var ctaTitle=document.querySelector('.wiz-row-cta .wiz-row-title');
+  if(ctaTitle) ctaTitle.textContent='Enviando tu diseño…';
+  mostrarToast('Enviando tu diseño a HubSpot…');
   registrarLeadHubSpot(nombre, correo, telefono, barrio, data, medidas, captura).then(function(resultado){
     if(!resultado || !resultado.ok){
       console.warn('No se pudo actualizar el lead en HubSpot con el diseño:', resultado && resultado.reason);
     }
+    mostrarToast('Actualizamos tu diseño. Abrimos WhatsApp para continuar.');
+    window.location.href=waURL;
   });
-  mostrarToast('Actualizamos tu diseño. Abrimos WhatsApp para continuar.');
-  window.location.href=waURL;
 }
 
 // Handler de los botones "Solicitar asesoría personalizada" / del banner-
@@ -2343,6 +2349,16 @@ function enviarLeadYAbrirWhatsApp(){
       }catch(e){}
       syncLeadUI();
       cerrarModalLead();
+      // Llevamos al cliente al INICIO del paso a paso (fila 1, Distribución)
+      // — antes se quedaba donde sea que hubiera quedado el scroll (interno
+      // del panel y de la página), y el aviso de confirmación (fijo abajo
+      // de la pantalla) terminaba montado sobre partes sin relación,
+      // viéndose como algo roto. Reseteamos ambos scrolls para que el
+      // cliente vea con claridad dónde empieza a diseñar.
+      var cfgSection=document.getElementById('cfg-tool');
+      if(cfgSection) cfgSection.scrollIntoView({behavior:'smooth', block:'start'});
+      var sidebarEl=document.getElementById('sidebar');
+      if(sidebarEl) sidebarEl.scrollTop=0;
       mostrarToast('¡Listo! Ya puedes diseñar tu cocina en 3D. Cuando termines, toca "Solicitar cotización" para enviarnos tu diseño por WhatsApp.');
     } else {
       mostrarError('No pudimos registrar tu solicitud'+(resultado&&resultado.reason?(' ('+resultado.reason+')'):'')+'. Revisa tus datos e inténtalo de nuevo.');

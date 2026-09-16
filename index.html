@@ -688,19 +688,21 @@ section{position:relative}
 #cfgRoot #wiz-lead-gate{position:absolute;inset:0;z-index:25;display:flex;flex-direction:column;
   align-items:center;justify-content:center;text-align:center;gap:18px;cursor:pointer;
   padding:40px 32px;
-  background:linear-gradient(160deg,var(--hd-gold),#e0bd6a 65%,#d9b568);
+  background:radial-gradient(ellipse 90% 70% at 50% 38%,rgba(201,168,76,0.16),transparent 70%),
+             linear-gradient(165deg,#17171b,#0b0b0e);
   transition:filter .15s}
-#cfgRoot #wiz-lead-gate:hover{filter:brightness(1.04)}
-#cfgRoot #wiz-lead-gate:active{filter:brightness(0.98)}
+#cfgRoot #wiz-lead-gate:hover{filter:brightness(1.08)}
+#cfgRoot #wiz-lead-gate:active{filter:brightness(0.96)}
 #cfgRoot #wiz-lead-gate-badge{width:88px;height:88px;flex:0 0 auto;border-radius:50%;
   display:flex;align-items:center;justify-content:center;font-size:40px;
-  background:#15120a;color:var(--hd-gold);box-shadow:0 10px 26px -8px rgba(0,0,0,0.4)}
+  background:linear-gradient(135deg,var(--hd-gold),#e0bd6a);color:#15120a;
+  box-shadow:0 14px 34px -10px rgba(201,168,76,0.55)}
 #cfgRoot #wiz-lead-gate-text{display:flex;flex-direction:column;gap:8px;max-width:340px}
-#cfgRoot #wiz-lead-gate-text strong{font-size:27px;font-weight:800;color:#15120a;line-height:1.25}
-#cfgRoot #wiz-lead-gate-text span{font-size:14.5px;line-height:1.4;color:rgba(21,18,10,0.72);font-weight:600}
+#cfgRoot #wiz-lead-gate-text strong{font-size:27px;font-weight:800;color:#fff;line-height:1.25}
+#cfgRoot #wiz-lead-gate-text span{font-size:14.5px;line-height:1.4;color:rgba(255,255,255,0.55);font-weight:500}
 #cfgRoot #wiz-lead-gate-btn-fake{display:inline-flex;align-items:center;gap:7px;margin-top:6px;
-  padding:14px 28px;border-radius:32px;background:#15120a;color:var(--hd-gold);
-  font-size:14.5px;font-weight:700;letter-spacing:0.02em;box-shadow:0 10px 22px -6px rgba(0,0,0,0.4)}
+  padding:14px 28px;border-radius:32px;background:linear-gradient(135deg,var(--hd-gold),#e0bd6a);color:#15120a;
+  font-size:14.5px;font-weight:700;letter-spacing:0.02em;box-shadow:0 12px 28px -8px rgba(201,168,76,0.55)}
 #cfgRoot #wiz-lead-gate-btn-fake svg{width:17px;height:17px;flex:0 0 auto}
 @media(max-width:640px){
   #cfgRoot #wiz-lead-gate-badge{width:76px;height:76px;font-size:34px}
@@ -2019,7 +2021,25 @@ const HUBSPOT_TIMEOUT_MS=18000;
 function capturarDiseno(){
   try{
     if(typeof canvas==='undefined' || !canvas || !canvas.toDataURL) return '';
-    return canvas.toDataURL('image/jpeg', 0.72);
+    // El <canvas> real del configurador puede ser enorme (pantalla completa
+    // a 2x-3x devicePixelRatio en celulares retina), así que aunque la
+    // calidad JPEG sea baja, el base64 resultante puede pesar varios
+    // cientos de KB. HubSpot rechaza el envío COMPLETO del formulario (no
+    // solo el campo de la imagen) si algún campo es demasiado grande — por
+    // eso antes no llegaba NADA (ni nombre ni teléfono) cuando se incluía
+    // la captura. Para evitarlo, reescalamos a un tamaño chico (máximo 480px
+    // de lado largo) en un canvas aparte antes de codificar: de sobra para
+    // verse bien como referencia visual dentro de HubSpot.
+    var maxSide=480;
+    var w=canvas.width, h=canvas.height;
+    var scale=Math.min(1, maxSide/Math.max(w,h));
+    var outW=Math.max(1, Math.round(w*scale));
+    var outH=Math.max(1, Math.round(h*scale));
+    var off=document.createElement('canvas');
+    off.width=outW; off.height=outH;
+    var ctx=off.getContext('2d');
+    ctx.drawImage(canvas, 0, 0, outW, outH);
+    return off.toDataURL('image/jpeg', 0.6);
   }catch(e){
     // Ej: canvas "tainted" por alguna textura cross-origin. Fallamos en
     // silencio — la captura es un plus, nunca debe bloquear el envío.
@@ -2194,8 +2214,14 @@ function reenviarDisenoActualizado(){
   var waURL='https://wa.me/'+WHATSAPP_NUMBER+'?text='+encodeURIComponent(buildWhatsAppMessage(barrio));
   sendQuoteToCRM(data);
   // Actualización de mejor esfuerzo: no bloqueamos la apertura de WhatsApp
-  // esperando la respuesta, porque el lead ya quedó registrado antes.
-  registrarLeadHubSpot(nombre, correo, telefono, barrio, data, medidas, captura);
+  // esperando la respuesta, porque el lead ya quedó registrado antes. Si
+  // falla, lo dejamos en la consola — antes fallaba en silencio total, sin
+  // ninguna pista de qué pasó.
+  registrarLeadHubSpot(nombre, correo, telefono, barrio, data, medidas, captura).then(function(resultado){
+    if(!resultado || !resultado.ok){
+      console.warn('No se pudo actualizar el lead en HubSpot con el diseño:', resultado && resultado.reason);
+    }
+  });
   mostrarToast('Actualizamos tu diseño. Abrimos WhatsApp para continuar.');
   window.location.href=waURL;
 }

@@ -426,10 +426,16 @@ section{position:relative}
 .cfg-shell{padding-left:0;padding-right:0}
 .cfg-bezel{padding:0;border:none;border-radius:0;box-shadow:none;background:none}
 #cfgRoot{height:100vh;height:100dvh;max-height:none;min-height:0}
-/* ===== Floating glass panel shell (Configurador) ===== */
+/* ===== Floating glass panel shell (Configurador) =====
+   Antes se posicionaba solo con bottom:74px + height:85vh, calculando su
+   borde superior de forma flotante — en ciertos altos de pantalla esa
+   cuenta lo hacía invadir la zona del logo/topbar de arriba (se veía
+   montado, como recortado/con zoom). Ahora se ancla con top Y bottom fijos:
+   así su tamaño es siempre predecible (nunca choca con el logo arriba) y
+   consistente entre dispositivos, en vez de depender de un cálculo en vh
+   que varía con la altura real de cada pantalla. */
 #cfgRoot #sidebar{
-  top:auto;left:10px;right:10px;bottom:74px;width:auto;
-  height:85vh;max-height:760px;
+  top:78px;left:10px;right:10px;bottom:74px;width:auto;height:auto;
   border:1px solid rgba(255,255,255,0.16);
   border-radius:24px;
   background:linear-gradient(165deg,rgba(20,20,24,0.30),rgba(14,14,17,0.24));

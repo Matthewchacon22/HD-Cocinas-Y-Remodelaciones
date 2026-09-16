@@ -676,27 +676,44 @@ section{position:relative}
   #cfgRoot .wiz-row-cta .wiz-row-status{font-size:14.5px}
 }
 
-/* Banner de invitación: mismo lenguaje visual que "Ver diseño" /
-   "Solicitar cotización" (medallón + título + chevron, tarjeta dorada
-   clicable), para que se sienta parte del mismo diseño en vez de un
-   parche aparte. Ya NO bloquea nada por sí sola — el cliente puede ver
-   todas las preguntas normalmente, sin atenuar; el formulario aparece en
-   cuanto intenta tocar cualquiera de ellas (ver el intercept de clics en
-   el JS, más abajo de abrirModalLead()). */
-#cfgRoot #wiz-lead-gate{position:relative;display:flex;align-items:center;gap:14px;cursor:pointer;
-  margin:10px 12px 0;padding:14px 16px;
-  border-radius:16px;background:linear-gradient(135deg,var(--hd-gold),#e0bd6a);
-  box-shadow:0 10px 26px -10px rgba(201,168,76,0.55);
+/* Antes de llenar el formulario, el aviso debe ser LO ÚNICO visible —
+   nada de preguntas ni barra de progreso compitiendo por espacio abajo
+   (eso era justo lo que se veía apiñado). Se aplica la clase .pre-lead a
+   #cfgRoot mientras leadCaptured sea false (ver syncLeadUI() en el JS):
+   oculta por completo (display:none, no solo atenuado) la barra de
+   progreso, todas las filas del acordeón, y la burbuja flotante "Ver
+   diseño" — no queda nada más que el aviso grande. */
+#cfgRoot.pre-lead #wiz-progress-summary,
+#cfgRoot.pre-lead #wiz-accordion .wiz-row{display:none}
+#cfgRoot.pre-lead #wiz-peek-fab{display:none}
+/* Aviso grande: pasa de ser una fila más a una tarjeta protagonista que
+   llena el panel — ícono grande arriba, título y subtítulo centrados, y
+   un botón claro debajo (en vez del layout en fila usado por las otras
+   filas de acción, que aquí se sentía demasiado chico para ser "lo único
+   que se ve"). */
+#cfgRoot #wiz-lead-gate{position:relative;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;gap:16px;cursor:pointer;
+  min-height:300px;margin:14px 14px 0;padding:40px 26px;
+  border-radius:20px;background:linear-gradient(160deg,var(--hd-gold),#e0bd6a 65%,#d9b568);
+  box-shadow:0 20px 50px -16px rgba(201,168,76,0.55);
   transition:filter .15s,transform .15s}
 #cfgRoot #wiz-lead-gate:hover{filter:brightness(1.05)}
-#cfgRoot #wiz-lead-gate-badge{width:38px;height:38px;flex:0 0 auto;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-size:17px;
-  background:#15120a;color:var(--hd-gold)}
-#cfgRoot #wiz-lead-gate-text{display:flex;flex-direction:column;gap:2px;min-width:0}
-#cfgRoot #wiz-lead-gate-text strong{font-size:14.5px;font-weight:800;color:#15120a;line-height:1.25}
-#cfgRoot #wiz-lead-gate-text span{font-size:12px;line-height:1.3;color:rgba(21,18,10,0.7);font-weight:600}
-#cfgRoot #wiz-lead-gate-chev{width:20px;height:20px;flex:0 0 auto;color:rgba(21,18,10,0.55)}
 #cfgRoot #wiz-lead-gate:active{transform:scale(0.99)}
+#cfgRoot #wiz-lead-gate-badge{width:72px;height:72px;flex:0 0 auto;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:32px;
+  background:#15120a;color:var(--hd-gold);box-shadow:0 8px 20px -6px rgba(0,0,0,0.4)}
+#cfgRoot #wiz-lead-gate-text{display:flex;flex-direction:column;gap:6px;max-width:280px}
+#cfgRoot #wiz-lead-gate-text strong{font-size:21px;font-weight:800;color:#15120a;line-height:1.25}
+#cfgRoot #wiz-lead-gate-text span{font-size:13.5px;line-height:1.4;color:rgba(21,18,10,0.72);font-weight:600}
+#cfgRoot #wiz-lead-gate-btn-fake{display:inline-flex;align-items:center;gap:6px;margin-top:4px;
+  padding:11px 22px;border-radius:30px;background:#15120a;color:var(--hd-gold);
+  font-size:13.5px;font-weight:700;letter-spacing:0.02em}
+#cfgRoot #wiz-lead-gate-btn-fake svg{width:16px;height:16px;flex:0 0 auto}
+@media(max-width:640px){
+  #cfgRoot #wiz-lead-gate{min-height:260px;padding:36px 22px}
+  #cfgRoot #wiz-lead-gate-badge{width:64px;height:64px;font-size:28px}
+  #cfgRoot #wiz-lead-gate-text strong{font-size:19px}
+}
 @media(max-width:640px){
   #cfgRoot .wiz-row-head{min-height:64px;padding:16px 16px}
   #cfgRoot .wiz-row-num{width:36px;height:36px;font-size:15px}
@@ -904,7 +921,9 @@ section{position:relative}
           <strong>Empieza a diseñar tu cocina</strong>
           <span>Solo pedimos tus datos · menos de 1 minuto</span>
         </div>
-        <svg id="wiz-lead-gate-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="wiz-lead-gate-btn-fake">Comenzar
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
       </div>
       <div id="wiz-progress-summary">
         <div id="wiz-progress-summary-bar"><div id="wiz-progress-summary-fill"></div></div>
@@ -2154,6 +2173,8 @@ var leadCaptured=(localStorage.getItem('hd_lead_captured')==='1');
 function syncLeadUI(){
   var gate=document.getElementById('wiz-lead-gate');
   if(gate) gate.style.display=leadCaptured?'none':'';
+  var root=document.getElementById('cfgRoot');
+  if(root) root.classList.toggle('pre-lead', !leadCaptured);
   var ctaTitle=document.querySelector('.wiz-row-cta .wiz-row-title');
   var ctaStatus=document.querySelector('.wiz-row-cta .wiz-row-status');
   if(ctaTitle && ctaStatus){

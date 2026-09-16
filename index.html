@@ -1710,7 +1710,21 @@ function resize(){
   camera.aspect=W/H;camera.updateProjectionMatrix();
 }
 window.addEventListener('resize',resize);
-try{var __ro=new ResizeObserver(function(){resize();});__ro.observe(document.getElementById('cfgRoot'));}catch(e){}
+try{
+  var __resizeTimer=null;
+  var __ro=new ResizeObserver(function(){
+    // El navegador móvil redimensiona el viewport varias veces seguidas
+    // mientras la barra de direcciones se oculta/aparece durante un
+    // scroll (por ejemplo justo al enviar el formulario y saltar al
+    // inicio del paso a paso) — sin agrupar esas llamadas, la cámara 3D
+    // recalculaba su aspecto en cada micro-cambio de tamaño, y eso se
+    // sentía como un zoom raro y brusco. Agrupamos (debounce) para que
+    // solo se recalcule una vez que el tamaño se asiente.
+    if(__resizeTimer) clearTimeout(__resizeTimer);
+    __resizeTimer=setTimeout(resize, 150);
+  });
+  __ro.observe(document.getElementById('cfgRoot'));
+}catch(e){}
 
 function togglePanel(){
   const sb=document.getElementById('sidebar');
@@ -2022,15 +2036,14 @@ function capturarDiseno(){
   try{
     if(typeof canvas==='undefined' || !canvas || !canvas.toDataURL) return '';
     // El <canvas> real del configurador puede ser enorme (pantalla completa
-    // a 2x-3x devicePixelRatio en celulares retina), así que aunque la
-    // calidad JPEG sea baja, el base64 resultante puede pesar varios
-    // cientos de KB. HubSpot rechaza el envío COMPLETO del formulario (no
-    // solo el campo de la imagen) si algún campo es demasiado grande — por
-    // eso antes no llegaba NADA (ni nombre ni teléfono) cuando se incluía
-    // la captura. Para evitarlo, reescalamos a un tamaño chico (máximo 480px
-    // de lado largo) en un canvas aparte antes de codificar: de sobra para
-    // verse bien como referencia visual dentro de HubSpot.
-    var maxSide=480;
+    // a 2x-3x devicePixelRatio en celulares retina), así que reescalamos a
+    // un tamaño más manejable antes de codificar en base64. Antes esto
+    // estaba en 480px/calidad 0.6 pensando que el tamaño del envío era el
+    // problema de que "no llegaba nada" a HubSpot — pero el problema real
+    // era otro (ver registrarLeadHubSpot: se navegaba a WhatsApp sin
+    // esperar la respuesta). Ya corregido eso, subimos la resolución para
+    // que la imagen se vea nítida en HubSpot.
+    var maxSide=1000;
     var w=canvas.width, h=canvas.height;
     var scale=Math.min(1, maxSide/Math.max(w,h));
     var outW=Math.max(1, Math.round(w*scale));
@@ -2039,7 +2052,7 @@ function capturarDiseno(){
     off.width=outW; off.height=outH;
     var ctx=off.getContext('2d');
     ctx.drawImage(canvas, 0, 0, outW, outH);
-    return off.toDataURL('image/jpeg', 0.6);
+    return off.toDataURL('image/jpeg', 0.85);
   }catch(e){
     // Ej: canvas "tainted" por alguna textura cross-origin. Fallamos en
     // silencio — la captura es un plus, nunca debe bloquear el envío.

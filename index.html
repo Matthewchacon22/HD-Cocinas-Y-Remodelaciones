@@ -676,45 +676,36 @@ section{position:relative}
   #cfgRoot .wiz-row-cta .wiz-row-status{font-size:14.5px}
 }
 
-/* Antes de llenar el formulario, el aviso debe ser LO ÚNICO visible —
-   nada de preguntas ni barra de progreso compitiendo por espacio abajo
-   (eso era justo lo que se veía apiñado). Se aplica la clase .pre-lead a
-   #cfgRoot mientras leadCaptured sea false (ver syncLeadUI() en el JS):
-   oculta por completo (display:none, no solo atenuado) la barra de
-   progreso, todas las filas del acordeón, y la burbuja flotante "Ver
-   diseño" — no queda nada más que el aviso grande. */
-#cfgRoot.pre-lead #wiz-progress-summary,
-#cfgRoot.pre-lead #wiz-accordion .wiz-row{display:none}
-#cfgRoot.pre-lead #wiz-peek-fab{display:none}
-/* Aviso grande: pasa de ser una fila más a una tarjeta protagonista que
-   llena el panel — ícono grande arriba, título y subtítulo centrados, y
-   un botón claro debajo (en vez del layout en fila usado por las otras
-   filas de acción, que aquí se sentía demasiado chico para ser "lo único
-   que se ve"). */
-#cfgRoot #wiz-lead-gate{position:relative;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;text-align:center;gap:16px;cursor:pointer;
-  min-height:300px;margin:14px 14px 0;padding:40px 26px;
-  border-radius:20px;background:linear-gradient(160deg,var(--hd-gold),#e0bd6a 65%,#d9b568);
-  box-shadow:0 20px 50px -16px rgba(201,168,76,0.55);
-  transition:filter .15s,transform .15s}
-#cfgRoot #wiz-lead-gate:hover{filter:brightness(1.05)}
-#cfgRoot #wiz-lead-gate:active{transform:scale(0.99)}
-#cfgRoot #wiz-lead-gate-badge{width:72px;height:72px;flex:0 0 auto;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-size:32px;
-  background:#15120a;color:var(--hd-gold);box-shadow:0 8px 20px -6px rgba(0,0,0,0.4)}
-#cfgRoot #wiz-lead-gate-text{display:flex;flex-direction:column;gap:6px;max-width:280px}
-#cfgRoot #wiz-lead-gate-text strong{font-size:21px;font-weight:800;color:#15120a;line-height:1.25}
-#cfgRoot #wiz-lead-gate-text span{font-size:13.5px;line-height:1.4;color:rgba(21,18,10,0.72);font-weight:600}
-#cfgRoot #wiz-lead-gate-btn-fake{display:inline-flex;align-items:center;gap:6px;margin-top:4px;
-  padding:11px 22px;border-radius:30px;background:#15120a;color:var(--hd-gold);
-  font-size:13.5px;font-weight:700;letter-spacing:0.02em}
-#cfgRoot #wiz-lead-gate-btn-fake svg{width:16px;height:16px;flex:0 0 auto}
+/* Antes de llenar el formulario, el aviso debe ser LO ÚNICO visible — no
+   solo dentro del panel angosto de 290px, sino cubriendo TODO el
+   configurador (canvas + panel), igual que #empty-state cubre el canvas.
+   Vive como hijo directo de #cfgRoot (no dentro de #sidebar), position
+   absolute inset:0 con el z-index más alto de todos (25, por encima del
+   panel en 15 y el topbar en 20) — así se ve como una sola tarjeta
+   completa, no un cuadradito perdido a un lado. #cfgRoot ya recorta con
+   overflow:hidden + border-radius, así que el overlay hereda esas
+   esquinas redondeadas gratis. */
+#cfgRoot #wiz-lead-gate{position:absolute;inset:0;z-index:25;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;gap:18px;cursor:pointer;
+  padding:40px 32px;
+  background:linear-gradient(160deg,var(--hd-gold),#e0bd6a 65%,#d9b568);
+  transition:filter .15s}
+#cfgRoot #wiz-lead-gate:hover{filter:brightness(1.04)}
+#cfgRoot #wiz-lead-gate:active{filter:brightness(0.98)}
+#cfgRoot #wiz-lead-gate-badge{width:88px;height:88px;flex:0 0 auto;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:40px;
+  background:#15120a;color:var(--hd-gold);box-shadow:0 10px 26px -8px rgba(0,0,0,0.4)}
+#cfgRoot #wiz-lead-gate-text{display:flex;flex-direction:column;gap:8px;max-width:340px}
+#cfgRoot #wiz-lead-gate-text strong{font-size:27px;font-weight:800;color:#15120a;line-height:1.25}
+#cfgRoot #wiz-lead-gate-text span{font-size:14.5px;line-height:1.4;color:rgba(21,18,10,0.72);font-weight:600}
+#cfgRoot #wiz-lead-gate-btn-fake{display:inline-flex;align-items:center;gap:7px;margin-top:6px;
+  padding:14px 28px;border-radius:32px;background:#15120a;color:var(--hd-gold);
+  font-size:14.5px;font-weight:700;letter-spacing:0.02em;box-shadow:0 10px 22px -6px rgba(0,0,0,0.4)}
+#cfgRoot #wiz-lead-gate-btn-fake svg{width:17px;height:17px;flex:0 0 auto}
 @media(max-width:640px){
-  #cfgRoot #wiz-lead-gate{min-height:260px;padding:36px 22px}
-  #cfgRoot #wiz-lead-gate-badge{width:64px;height:64px;font-size:28px}
-  #cfgRoot #wiz-lead-gate-text strong{font-size:19px}
-}
-@media(max-width:640px){
+  #cfgRoot #wiz-lead-gate-badge{width:76px;height:76px;font-size:34px}
+  #cfgRoot #wiz-lead-gate-text strong{font-size:23px}
+  #cfgRoot #wiz-lead-gate-text span{font-size:13.5px}
   #cfgRoot .wiz-row-head{min-height:64px;padding:16px 16px}
   #cfgRoot .wiz-row-num{width:36px;height:36px;font-size:15px}
   #cfgRoot .wiz-row-title{font-size:17px}
@@ -874,6 +865,16 @@ section{position:relative}
  <div class="cfg-shell" id="cfg-tool">
   <div class="cfg-bezel r">
    <div id="cfgRoot">
+<div id="wiz-lead-gate" role="button" tabindex="0" onclick="abrirModalLead()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirModalLead();}">
+  <span id="wiz-lead-gate-badge">🎨</span>
+  <div id="wiz-lead-gate-text">
+    <strong>Empieza a diseñar tu cocina</strong>
+    <span>Solo pedimos tus datos · menos de 1 minuto</span>
+  </div>
+  <span id="wiz-lead-gate-btn-fake">Comenzar
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </span>
+</div>
 <div id="root">
 <h2 class="sr-only">Configurador 3D de cocinas — HD Cocinas y Remodelaciones Barranquilla</h2>
 <div id="topbar">
@@ -915,16 +916,6 @@ section{position:relative}
 
     <div id="wiz-accordion">
     <div id="wiz-sticky-top">
-      <div id="wiz-lead-gate" role="button" tabindex="0" onclick="abrirModalLead()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirModalLead();}">
-        <span id="wiz-lead-gate-badge">🎨</span>
-        <div id="wiz-lead-gate-text">
-          <strong>Empieza a diseñar tu cocina</strong>
-          <span>Solo pedimos tus datos · menos de 1 minuto</span>
-        </div>
-        <span id="wiz-lead-gate-btn-fake">Comenzar
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </span>
-      </div>
       <div id="wiz-progress-summary">
         <div id="wiz-progress-summary-bar"><div id="wiz-progress-summary-fill"></div></div>
         <span id="wiz-progress-summary-text">0 de 7 listos</span>

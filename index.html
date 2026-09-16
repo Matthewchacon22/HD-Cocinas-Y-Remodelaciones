@@ -276,6 +276,14 @@ section{position:relative}
 .cfg-chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:26px}
 .cfg-chips span{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:8px 15px;border-radius:30px}
 .cfg-shell{max-width:1340px;margin:0 auto;padding:0 clamp(12px,3vw,34px) clamp(60px,8vw,110px);
+  /* El nav del sitio es position:fixed y cubre los primeros ~70px de
+     pantalla siempre. Sin esto, cuando el formulario hace scrollIntoView
+     hacia aquí, el navegador alinea el borde superior justo con el borde
+     de la pantalla — pero el nav fijo se monta encima, tapando el logo
+     interno del configurador y la pestaña "DISEÑO". scroll-margin-top le
+     dice al scroll que se detenga un poco antes, dejando espacio para el
+     nav fijo. */
+  scroll-margin-top:74px;
   scroll-margin-top:calc(var(--navh,76px) + 14px)}
 .cfg-bezel{position:relative;border-radius:14px;padding:10px;
   background:linear-gradient(180deg,rgba(244,242,238,.08),rgba(244,242,238,.02));

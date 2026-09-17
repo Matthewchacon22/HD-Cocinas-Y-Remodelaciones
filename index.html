@@ -31,7 +31,7 @@ if(location.hash){
 }
 </script>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>HD Cocinas · Cocinas integrales a la medida en Barranquilla | Diseño 3D gratis</title>
 <meta name="description" content="Fabricamos e instalamos cocinas integrales, closets y remodelaciones a la medida en Barranquilla. Diseña tu cocina en 3D gratis, en línea, y recibe tu cotización por WhatsApp en minutos.">
 <meta name="keywords" content="cocinas integrales Barranquilla, remodelación de cocinas, diseño de cocinas 3D, cocinas modulares, fabricación de cocinas a la medida, cocinas en L, cocinas con isla, HD Cocinas y Remodelaciones">
@@ -2412,19 +2412,19 @@ function enviarLeadYAbrirWhatsApp(){
         cerrarModalLead();
         syncLeadUI();
         resetIOSZoom();
-        // Llevamos al cliente al INICIO del paso a paso (fila 1, Distribución)
-        // — antes se quedaba donde sea que hubiera quedado el scroll (interno
-        // del panel y de la página), y el aviso de confirmación (fijo abajo
-        // de la pantalla) terminaba montado sobre partes sin relación,
-        // viéndose como algo roto. Reseteamos ambos scrolls para que el
-        // cliente vea con claridad dónde empieza a diseñar.
-        var cfgSection=document.getElementById('cfg-tool');
-        if(cfgSection) cfgSection.scrollIntoView({behavior:'smooth', block:'start'});
+        // Ya NO hacemos scroll de la PÁGINA aquí (cfgSection.scrollIntoView).
+        // Ese scroll, aunque sea instantáneo, es justo el tipo de acción que
+        // dispara el bug de zoom atascado de iOS cuando coincide con el
+        // cierre del teclado — y en la práctica casi nunca hacía falta: el
+        // modal ya aparece encima del configurador, así que la página ya
+        // está posicionada ahí. Solo reseteamos el scroll INTERNO del panel
+        // (no mueve la página, no debería disparar el bug) para que el
+        // cliente arranque viendo la fila 1.
         var sidebarEl=document.getElementById('sidebar');
         if(sidebarEl) sidebarEl.scrollTop=0;
         mostrarToast('¡Listo! Ya puedes diseñar tu cocina en 3D. Cuando termines, toca "Solicitar cotización" para enviarnos tu diseño por WhatsApp.');
-        // Red de seguridad final: si iOS igual se quedó con zoom aplicado,
-        // lo forzamos a resetear una vez más cuando el scroll ya terminó.
+        // Red de seguridad: si iOS igual se quedó con zoom atascado por
+        // alguna otra razón, lo forzamos a soltarlo una vez más.
         setTimeout(resetIOSZoom, 500);
       }, 350);
     } else {

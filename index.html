@@ -2228,18 +2228,23 @@ function syncLeadUI(){
   }
   var footBtn=document.getElementById('cfg-foot-cta');
   if(footBtn) footBtn.textContent=leadCaptured?'Continuar por WhatsApp ↗':'Solicitar cotización ↗';
-  // La cámara 3D se configura UNA sola vez, al cargar el script, midiendo el
-  // tamaño del contenedor en ese instante — mientras el aviso dorado cubre
-  // todo el canvas, ese cálculo puede haber quedado mal (por ejemplo si
-  // 100dvh todavía no se había resuelto bien en el celular) sin que se note,
-  // porque nadie ve el canvas hasta llenar el formulario. Forzamos un
-  // recálculo justo cuando el aviso se quita/pone, para que la cámara
-  // siempre se ajuste al tamaño real en el momento en que sí se ve.
-  if(typeof resize==='function'){
-    requestAnimationFrame(function(){ requestAnimationFrame(resize); });
-  }
 }
 syncLeadUI();
+
+// Truco estándar para forzar a iOS Safari a "soltar" un zoom en el que se
+// haya quedado atascado (típico tras cerrar el teclado justo cuando el
+// layout cambia mucho): tocar brevemente maximum-scale en el <meta
+// viewport> obliga al navegador a recalcular el zoom desde cero. No tiene
+// efecto visible si no había ningún zoom atascado — es inofensivo.
+function resetIOSZoom(){
+  try{
+    var meta=document.querySelector('meta[name="viewport"]');
+    if(!meta) return;
+    var original=meta.getAttribute('content');
+    meta.setAttribute('content', original+', maximum-scale=1.0');
+    setTimeout(function(){ meta.setAttribute('content', original); }, 60);
+  }catch(e){}
+}
 
 // Reenvía el diseño actualizado cuando el lead YA fue capturado antes: no
 // vuelve a mostrar el formulario (ya tenemos sus datos), solo actualiza el
@@ -2391,19 +2396,22 @@ function enviarLeadYAbrirWhatsApp(){
         localStorage.setItem('hd_lead_barrio',barrio);
         localStorage.setItem('hd_lead_medidas',medidas);
       }catch(e){}
-      syncLeadUI();
       // Justo antes de esto, el cliente estaba escribiendo con el teclado del
-      // celular abierto. Si hacemos scroll AL MISMO TIEMPO que el teclado se
-      // cierra, iOS Safari tiene un bug conocido: el viewport visual se queda
-      // "trabado" mostrando un recorte con zoom, aunque nadie haya hecho zoom
-      // de verdad. Soltamos el foco explícitamente y esperamos a que el
-      // teclado termine de bajar (~350ms, la duración típica de esa
-      // animación en iOS) ANTES de cerrar el modal y hacer scroll.
+      // celular abierto. Si el teclado se cierra Y el diseño se desbloquea Y
+      // hacemos scroll, todo al mismo tiempo, iOS Safari tiene un bug
+      // conocido: el viewport visual se queda "trabado" con zoom aplicado —
+      // se ve como si el logo y los botones estuvieran cortados en los
+      // bordes, aunque nadie haya hecho zoom de verdad. Soltamos el foco y
+      // esperamos a que el teclado termine de bajar (~350ms, la duración
+      // típica de esa animación en iOS) ANTES de hacer ningún otro cambio
+      // visual — así todo pasa en un solo paso limpio, no en dos.
       if(document.activeElement && typeof document.activeElement.blur==='function'){
         document.activeElement.blur();
       }
       setTimeout(function(){
         cerrarModalLead();
+        syncLeadUI();
+        resetIOSZoom();
         // Llevamos al cliente al INICIO del paso a paso (fila 1, Distribución)
         // — antes se quedaba donde sea que hubiera quedado el scroll (interno
         // del panel y de la página), y el aviso de confirmación (fijo abajo
@@ -2415,6 +2423,9 @@ function enviarLeadYAbrirWhatsApp(){
         var sidebarEl=document.getElementById('sidebar');
         if(sidebarEl) sidebarEl.scrollTop=0;
         mostrarToast('¡Listo! Ya puedes diseñar tu cocina en 3D. Cuando termines, toca "Solicitar cotización" para enviarnos tu diseño por WhatsApp.');
+        // Red de seguridad final: si iOS igual se quedó con zoom aplicado,
+        // lo forzamos a resetear una vez más cuando el scroll ya terminó.
+        setTimeout(resetIOSZoom, 500);
       }, 350);
     } else {
       mostrarError('No pudimos registrar tu solicitud'+(resultado&&resultado.reason?(' ('+resultado.reason+')'):'')+'. Revisa tus datos e inténtalo de nuevo.');

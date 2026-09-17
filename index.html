@@ -2412,14 +2412,14 @@ function enviarLeadYAbrirWhatsApp(){
         cerrarModalLead();
         syncLeadUI();
         resetIOSZoom();
-        // Ya NO hacemos scroll de la PÁGINA aquí (cfgSection.scrollIntoView).
-        // Ese scroll, aunque sea instantáneo, es justo el tipo de acción que
-        // dispara el bug de zoom atascado de iOS cuando coincide con el
-        // cierre del teclado — y en la práctica casi nunca hacía falta: el
-        // modal ya aparece encima del configurador, así que la página ya
-        // está posicionada ahí. Solo reseteamos el scroll INTERNO del panel
-        // (no mueve la página, no debería disparar el bug) para que el
-        // cliente arranque viendo la fila 1.
+        // Ahora que el zoom del navegador está bloqueado de forma permanente
+        // (maximum-scale=1 en el viewport), ya es seguro volver a hacer este
+        // scroll — antes lo quitamos porque coincidía con el bug de zoom
+        // atascado de iOS, pero eso ya no puede pasar. Llevamos al cliente
+        // al INICIO del paso a paso (fila 1, Distribución) en vez de dejarlo
+        // donde sea que haya quedado el scroll de la página.
+        var cfgSection=document.getElementById('cfg-tool');
+        if(cfgSection) cfgSection.scrollIntoView({behavior:'smooth', block:'start'});
         var sidebarEl=document.getElementById('sidebar');
         if(sidebarEl) sidebarEl.scrollTop=0;
         mostrarToast('¡Listo! Ya puedes diseñar tu cocina en 3D. Cuando termines, toca "Solicitar cotización" para enviarnos tu diseño por WhatsApp.');

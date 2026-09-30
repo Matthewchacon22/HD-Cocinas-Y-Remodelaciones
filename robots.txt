@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /obra.html
+Disallow: /obras.html
+Disallow: /obra-nueva.html
+Disallow: /checklist.html
+
+Sitemap: https://hdcocinas.com/sitemap.xml
